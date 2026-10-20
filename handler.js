@@ -43,6 +43,18 @@ export default async function messageHandler(conn, chatUpdate) {
             }
         }
 
+        // Inisialisasi pengaturan chat di database
+        if (global.db?.data) {
+            if (!global.db.data.chats) global.db.data.chats = {}
+            if (m.isGroup && !global.db.data.chats[m.chat]) {
+                global.db.data.chats[m.chat] = {
+                    antilink: false,
+                    antifoto: false,
+                    antividio: false
+                }
+            }
+        }
+
         // Jalankan hook .before() dari setiap plugin jika ada
         for (const name in plugins) {
             const plugin = plugins[name]

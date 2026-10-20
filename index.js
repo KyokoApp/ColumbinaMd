@@ -4,6 +4,7 @@ import chalk from 'chalk'
 import config from './config.js'
 import messageHandler from './handler.js'
 import { initPlugins } from './lib/plugins.js'
+import { loadDatabase } from './lib/database.js'
 
 // Import Baileys dengan fallback aman
 let makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, Browsers, makeCacheableSignalKeyStore
@@ -33,6 +34,8 @@ const question = (query) => new Promise((resolve) => rl.question(query, resolve)
 
 async function startBot() {
     console.log(chalk.cyan.bold(`\n=== MEMULAI ${config.namebot.toUpperCase()} ===\n`))
+    // Muat database lokal
+    loadDatabase()
 
     // Muat semua plugin awal
     await initPlugins('./plugins')

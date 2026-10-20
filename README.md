@@ -13,6 +13,8 @@ Dirancang sebagai fondasi (boilerplate) bersih tanpa *bloatware* agar mudah dike
 - **Serialisasi Pesan Rapi**: Objek pesan disederhanakan (`m.reply`, `m.text`, `m.sender`, `m.isGroup`, `m.quoted`, media downloader).
 - **Role & Security Guards**: Dukungan guard otomatis per-plugin (`owner`, `admin`, `botAdmin`, `group`, `private`).
 - **Auto-Follow Channel**: Otomatis mengikuti saluran WhatsApp resmi ketika bot pertama kali terhubung.
+- **Anti-Media & Anti-Link (Grup)**: Proteksi grup otomatis (Anti Link All, Anti Foto, Anti Video) dengan sistem delete biasa tanpa spam pesan interaktif.
+- **Pengaturan Grup Teks (.on / .off)**: Sakelar fitur grup mudah langsung menampilkan status list tanpa tombol yang berat.
 - **Starter Commands**: Menu dinamis yang mengelompokkan kategori secara otomatis, pengukur ping/speed, restart bot, serta eval JavaScript & Shell execution (`>` / `$`).
 
 ---
@@ -30,10 +32,16 @@ ColumbinaMd/
 ├── session/            # Folder penyimpanan sesi WhatsApp (Multi-File Auth)
 ├── lib/
 │   ├── simple.js       # Serialisasi WebMessageInfo & media helpers
-│   └── plugins.js      # Dynamic loader & file watcher (Hot-Reload)
+│   ├── plugins.js      # Dynamic loader & file watcher (Hot-Reload)
+│   └── database.js     # Penyimpanan JSON lokal untuk pengaturan grup
 └── plugins/
     ├── main/menu.js    # Perintah menu dinamis berdasarkan tags
     ├── info/ping.js    # Perintah pengukur kecepatan respon & status sistem
+    ├── group/
+    │   ├── enable.js   # Perintah .on & .off pengaturan grup (teks biasa)
+    │   ├── antilink.js  # Proteksi hapus pesan semua tautan link
+    │   ├── antifoto.js  # Proteksi hapus pesan foto/gambar
+    │   └── antividio.js # Proteksi hapus pesan video
     └── owner/
         ├── eval.js     # Runner kode JavaScript (>) dan terminal ($)
         └── restart.js  # Perintah reboot/restart bot
