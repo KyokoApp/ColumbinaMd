@@ -146,6 +146,45 @@ async function startBot() {
         }
     })
 
+    // Tangani event member masuk/keluar (Welcome & Bye)
+    sock.ev.on('group-participants.update', async (anu) => {
+        try {
+            const { id, participants, action } = anu
+            const chat = global.db?.data?.chats?.[id]
+            if (!chat || !chat.welcome) return
+
+            const metadata = await sock.groupMetadata(id).catch(() => null)
+            const groupName = metadata?.subject || 'Grup'
+            const groupDesc = metadata?.desc?.toString() || ''
+
+            for (const user of participants) {
+                if (action === 'add') {
+                    let text = chat.sWelcome || '👋 Selamat datang @user di grup *« @subject »*!\nSemoga betah di sini.'
+                    text = text
+                        .replace(/@user/g, `@${user.split('@')[0]}`)
+                        .replace(/@subject/g, groupName)
+                        .replace(/@desc/g, groupDesc)
+
+                    await sock.sendMessage(id, {
+                        text,
+                        mentions: [user]
+                    })
+                } else if (action === 'remove') {
+                    let text = chat.sBye || '👋 Selamat tinggal @user dari grup *« @subject »*.'
+                    text = text
+                        .replace(/@user/g, `@${user.split('@')[0]}`)
+                        .replace(/@subject/g, groupName)
+
+                    await sock.sendMessage(id, {
+                        text,
+                        mentions: [user]
+                    })
+                }
+            }
+        } catch (err) {
+            console.error('[GROUP PARTICIPANTS ERROR]', err.message)
+        }
+    })
     return sock
 }
 

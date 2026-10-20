@@ -38,13 +38,22 @@ ColumbinaMd/
     ├── main/menu.js    # Perintah menu dinamis berdasarkan tags
     ├── info/ping.js    # Perintah pengukur kecepatan respon & status sistem
     ├── group/
-    │   ├── enable.js   # Perintah .on & .off pengaturan grup (teks biasa)
-    │   ├── antilink.js  # Proteksi hapus pesan semua tautan link
-    │   ├── antifoto.js  # Proteksi hapus pesan foto/gambar
-    │   └── antividio.js # Proteksi hapus pesan video
+    │   ├── enable.js     # Perintah .on & .off pengaturan grup (teks biasa)
+    │   ├── antilink.js   # Proteksi hapus pesan semua tautan link
+    │   ├── antifoto.js   # Proteksi hapus pesan foto/gambar
+    │   ├── antividio.js  # Proteksi hapus pesan video
+    │   ├── tagall.js     # Mention seluruh anggota grup (.tagall)
+    │   ├── hidetag.js    # Mention senyap (.hidetag / .ht)
+    │   ├── linkgc.js     # Mengambil tautan undangan grup (.linkgc)
+    │   ├── kick.js       # Mengeluarkan member (.kick)
+    │   ├── promote.js    # Menjadikan admin (.promote)
+    │   ├── demote.js     # Menurunkan admin (.demote)
+    │   ├── intro.js      # Atur dan tampilkan intro grup (.intro / .setintro)
+    │   ├── setwelcome.js # Kustomisasi pesan sambutan (.setwelcome)
+    │   └── setbye.js     # Kustomisasi pesan perpisahan (.setbye)
     └── owner/
-        ├── eval.js     # Runner kode JavaScript (>) dan terminal ($)
-        └── restart.js  # Perintah reboot/restart bot
+        ├── eval.js       # Runner kode JavaScript (>) dan terminal ($)
+        └── restart.js    # Perintah reboot/restart bot
 ```
 
 ---

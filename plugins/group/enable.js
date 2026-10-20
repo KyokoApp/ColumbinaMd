@@ -5,7 +5,7 @@ let handler = async (m, { conn, args, usedPrefix, command, isAdmin, isOwner }) =
     const type = (args[0] || '').toLowerCase()
 
     // Daftar fitur yang dapat di-toggle
-    const featureList = ['antilink', 'antifoto', 'antividio']
+    const featureList = ['antilink', 'antifoto', 'antividio', 'welcome']
 
     // Jika tidak ada argumen, tampilkan daftar status fitur dalam teks biasa (tanpa tombol)
     if (!type || !featureList.includes(type)) {
@@ -14,8 +14,8 @@ let handler = async (m, { conn, args, usedPrefix, command, isAdmin, isOwner }) =
         text += `│ • antilink : [ ${chat.antilink ? 'ON ✅' : 'OFF ❌'} ]\n`
         text += `│ • antifoto : [ ${chat.antifoto ? 'ON ✅' : 'OFF ❌'} ]\n`
         text += `│ • antividio : [ ${chat.antividio ? 'ON ✅' : 'OFF ❌'} ]\n`
+        text += `│ • welcome : [ ${chat.welcome ? 'ON ✅' : 'OFF ❌'} ]\n`
         text += `└────\n\n`
-        text += `📌 *Format Penggunaan:*\n`
         text += `• \`${usedPrefix}on <nama-fitur>\`\n`
         text += `• \`${usedPrefix}off <nama-fitur>\`\n\n`
         text += `_Contoh: *${usedPrefix}on antilink*_`
