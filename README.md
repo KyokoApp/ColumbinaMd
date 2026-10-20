@@ -16,8 +16,8 @@ Dirancang sebagai fondasi (boilerplate) bersih tanpa *bloatware* agar mudah dike
 - **Anti-Media & Anti-Link (Grup)**: Proteksi grup otomatis (Anti Link All, Anti Foto, Anti Video) dengan sistem delete biasa tanpa spam pesan interaktif.
 - **Pengaturan Grup Teks (.on / .off)**: Sakelar fitur grup mudah langsung menampilkan status list tanpa tombol yang berat.
 - **5 AI Chat Publik (Tanpa API Key)**: Terintegrasi dengan model **Gemini**, **DeepSeek**, **Claude**, **Qwen**, dan **ChatGPT** menggunakan API publik gratis tanpa perlu memasukkan API key pribadi.
+- **Downloader Media Sosial**: Dukungan pengunduh video & gambar tanpa watermark untuk **TikTok** (`.tt`), **Facebook** (`.fb`), **Instagram** (`.ig`), dan **Pinterest** (`.pin`).
 - **Starter Commands**: Menu dinamis yang mengelompokkan kategori secara otomatis, pengukur ping/speed, restart bot, serta eval JavaScript & Shell execution (`>` / `$`).
-
 ---
 
 ## 📁 Struktur Direktori
@@ -45,6 +45,11 @@ ColumbinaMd/
     │   ├── claude.js     # Chat Claude AI (.claude)
     │   ├── qwen.js       # Chat Qwen AI (.qwen)
     │   └── chatgpt.js    # Chat ChatGPT / OpenAI (.ai / .chatgpt)
+    ├── downloader/
+    │   ├── tiktok.js     # Unduh video TikTok tanpa watermark (.tt / .tiktok)
+    │   ├── fb.js         # Unduh video Facebook HD/SD (.fb / .facebook)
+    │   ├── ig.js         # Unduh video/foto Instagram (.ig / .instagram)
+    │   └── pin.js        # Unduh & cari media Pinterest (.pin / .pinterest)
     ├── group/
     │   ├── enable.js     # Perintah .on & .off pengaturan grup (teks biasa)
     │   ├── antilink.js   # Proteksi hapus pesan semua tautan link

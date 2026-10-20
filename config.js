@@ -13,6 +13,9 @@ export default {
     // Nomor WhatsApp bot untuk pairing code (kosongkan jika ingin diinput di terminal saat jalan)
     pairingNumber: '',
 
+    // URL Gambar Thumbnail / Banner bot
+    thumbnail: 'https://c.termai.cc/a181/Wos950.jpg',
+
     // Saluran WhatsApp resmi yang otomatis diikuti (auto-follow) saat bot terhubung
     autoFollowChannel: 'https://whatsapp.com/channel/0029Vb8Lq2U9sBI6adYkQd1I',
     // Prefix perintah (string, array, atau regex)

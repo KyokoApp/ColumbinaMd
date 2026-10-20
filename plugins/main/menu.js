@@ -30,9 +30,28 @@ let handler = async (m, { conn, usedPrefix, command }) => {
         text += `└────\n\n`
     }
 
-    text += `_Ketik ${usedPrefix}<perintah> untuk menggunakan fitur._`
+    text += `_Ketik ${usedPrefix}<perintah> untuk menggunakan fitur._\n\n`
+    text += `⭐ *Bantu dukung bot ini dengan beri Star di GitHub:*\n`
+    text += `https://github.com/KyokoApp/ColumbinaMd`
 
-    await m.reply(text)
+    // Kirim menu dengan preview gambar thumbnail jika tersedia
+    if (config.thumbnail) {
+        await conn.sendMessage(m.chat, {
+            text,
+            contextInfo: {
+                externalAdReply: {
+                    title: config.namebot,
+                    body: `Lightweight WhatsApp Base Bot by ${config.ownerName}`,
+                    thumbnailUrl: config.thumbnail,
+                    sourceUrl: 'https://github.com/KyokoApp/ColumbinaMd',
+                    mediaType: 1,
+                    renderLargerThumbnail: true
+                }
+            }
+        }, { quoted: m })
+    } else {
+        await m.reply(text)
+    }
 }
 
 handler.help = ['menu', 'help']
