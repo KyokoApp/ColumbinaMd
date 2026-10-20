@@ -1,0 +1,29 @@
+{
+  "name": "columbinamd",
+  "version": "1.0.0",
+  "description": "Lightweight & Modular WhatsApp Base Bot powered by Baileys with Pairing Code",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KyokoApp/ColumbinaMd.git"
+  },
+  "keywords": [
+    "whatsapp",
+    "baileys",
+    "bot",
+    "modular",
+    "columbina",
+    "pairing-code"
+  ],
+  "author": "KyokoApp",
+  "license": "MIT",
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.18",
+    "chalk": "^5.3.0",
+    "pino": "^9.6.0"
+  }
+}
