@@ -15,6 +15,7 @@ Dirancang sebagai fondasi (boilerplate) bersih tanpa *bloatware* agar mudah dike
 - **Auto-Follow Channel**: Otomatis mengikuti saluran WhatsApp resmi ketika bot pertama kali terhubung.
 - **Anti-Media & Anti-Link (Grup)**: Proteksi grup otomatis (Anti Link All, Anti Foto, Anti Video) dengan sistem delete biasa tanpa spam pesan interaktif.
 - **Pengaturan Grup Teks (.on / .off)**: Sakelar fitur grup mudah langsung menampilkan status list tanpa tombol yang berat.
+- **5 AI Chat Publik (Tanpa API Key)**: Terintegrasi dengan model **Gemini**, **DeepSeek**, **Claude**, **Qwen**, dan **ChatGPT** menggunakan API publik gratis tanpa perlu memasukkan API key pribadi.
 - **Starter Commands**: Menu dinamis yang mengelompokkan kategori secara otomatis, pengukur ping/speed, restart bot, serta eval JavaScript & Shell execution (`>` / `$`).
 
 ---
@@ -33,10 +34,17 @@ ColumbinaMd/
 ├── lib/
 │   ├── simple.js       # Serialisasi WebMessageInfo & media helpers
 │   ├── plugins.js      # Dynamic loader & file watcher (Hot-Reload)
-│   └── database.js     # Penyimpanan JSON lokal untuk pengaturan grup
+│   ├── database.js     # Penyimpanan JSON lokal untuk pengaturan grup
+│   └── aiHelper.js     # Client API untuk model AI publik tanpa key
 └── plugins/
     ├── main/menu.js    # Perintah menu dinamis berdasarkan tags
     ├── info/ping.js    # Perintah pengukur kecepatan respon & status sistem
+    ├── ai/
+    │   ├── gemini.js     # Chat Gemini AI (.gemini)
+    │   ├── deepseek.js   # Chat DeepSeek AI (.deepseek / .ds)
+    │   ├── claude.js     # Chat Claude AI (.claude)
+    │   ├── qwen.js       # Chat Qwen AI (.qwen)
+    │   └── chatgpt.js    # Chat ChatGPT / OpenAI (.ai / .chatgpt)
     ├── group/
     │   ├── enable.js     # Perintah .on & .off pengaturan grup (teks biasa)
     │   ├── antilink.js   # Proteksi hapus pesan semua tautan link
