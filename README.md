@@ -17,6 +17,7 @@ Dirancang sebagai fondasi (boilerplate) bersih tanpa *bloatware* agar mudah dike
 - **Pengaturan Grup Teks (.on / .off)**: Sakelar fitur grup mudah langsung menampilkan status list tanpa tombol yang berat.
 - **5 AI Chat Publik (Tanpa API Key)**: Terintegrasi dengan model **Gemini**, **DeepSeek**, **Claude**, **Qwen**, dan **ChatGPT** menggunakan API publik gratis tanpa perlu memasukkan API key pribadi.
 - **Downloader Media Sosial**: Dukungan pengunduh video & gambar tanpa watermark untuk **TikTok** (`.tt`), **Facebook** (`.fb`), **Instagram** (`.ig`), dan **Pinterest** (`.pin`).
+- **Plugin Manager (Owner)**: Kelola plugin langsung via WhatsApp tanpa restart: simpan plugin (`.sp`), ambil kode file plugin (`.gp`), dan hapus plugin (`.dp`).
 - **Starter Commands**: Menu dinamis yang mengelompokkan kategori secara otomatis, pengukur ping/speed, restart bot, serta eval JavaScript & Shell execution (`>` / `$`).
 ---
 
@@ -66,6 +67,7 @@ ColumbinaMd/
     │   └── setbye.js     # Kustomisasi pesan perpisahan (.setbye)
     └── owner/
         ├── eval.js       # Runner kode JavaScript (>) dan terminal ($)
+        ├── plugins.js    # Pengelola plugin bot (.sp, .gp, .dp)
         └── restart.js    # Perintah reboot/restart bot
 ```
 
