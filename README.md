@@ -11,7 +11,7 @@
 <p align="center">
   <a href="https://github.com/KyokoApp/ColumbinaMd"><img src="https://img.shields.io/github/stars/KyokoApp/ColumbinaMd?style=for-the-badge&color=ffd700&logo=github" alt="Stars"></a>
   <a href="https://github.com/KyokoApp/ColumbinaMd"><img src="https://img.shields.io/github/forks/KyokoApp/ColumbinaMd?style=for-the-badge&color=6366f1&logo=git" alt="Forks"></a>
-  <img src="https://komarev.com/ghpvc/?username=KyokoApp-ColumbinaMd&label=VIEWS&color=00c853&style=for-the-badge" alt="Views">
+  <img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fhits.dwyl.com%2FKyokoApp%2FColumbinaMd.json&style=for-the-badge&color=25D366" alt="Views">
   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node.js-%3E%3D20-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js"></a>
   <a href="https://whatsapp.com/channel/0029Vb8Lq2U9sBI6adYkQd1I"><img src="https://img.shields.io/badge/WhatsApp-Channel-25D366?style=for-the-badge&logo=whatsapp&logoColor=white" alt="Saluran WhatsApp"></a>
 </p>
