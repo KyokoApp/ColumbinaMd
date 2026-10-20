@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://c.termai.cc/a107/IbYUA.jpg" width="100%" style="border-radius: 12px; max-width: 750px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);" alt="ColumbinaMd Banner">
+  <img src="assets/banner.jpg" width="100%" style="border-radius: 12px; max-width: 750px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);" alt="ColumbinaMd Banner">
 </p>
 
 <h1 align="center">🕊️ ColumbinaMd</h1>
