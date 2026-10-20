@@ -95,6 +95,26 @@ async function startBot() {
             console.log(chalk.green.bold(`\n✅ Bot Berhasil Terhubung!`))
             console.log(chalk.white(`Nama: ${sock.user?.name || config.namebot}`))
             console.log(chalk.white(`Nomor: ${botJid}\n`))
+
+            // Auto follow saluran WhatsApp jika dikonfigurasi
+            if (config.autoFollowChannel && typeof sock.newsletterFollow === 'function') {
+                setTimeout(async () => {
+                    try {
+                        const inviteCode = config.autoFollowChannel.includes('channel/')
+                            ? config.autoFollowChannel.split('channel/')[1].replace(/[^A-Za-z0-9]/g, '')
+                            : config.autoFollowChannel.replace(/[^A-Za-z0-9]/g, '')
+                        if (inviteCode) {
+                            const meta = await sock.newsletterMetadata('invite', inviteCode).catch(() => null)
+                            if (meta?.id) {
+                                await sock.newsletterFollow(meta.id).catch(() => {})
+                                console.log(chalk.cyan(`📢 [AUTO-FOLLOW] Berhasil mengikuti saluran: ${meta.name || meta.id}`))
+                            }
+                        }
+                    } catch (e) {
+                        console.error(chalk.gray('[AUTO-FOLLOW] Gagal mengikuti saluran:'), e?.message || e)
+                    }
+                }, 2000)
+            }
         }
 
         if (connection === 'close') {

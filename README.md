@@ -12,6 +12,7 @@ Dirancang sebagai fondasi (boilerplate) bersih tanpa *bloatware* agar mudah dike
 - **Sistem Plugin Modular & Hot-Reload**: Tambah fitur baru cukup dengan membuat file `.js` di dalam folder `plugins/`. File otomatis termuat tanpa harus merestart bot.
 - **Serialisasi Pesan Rapi**: Objek pesan disederhanakan (`m.reply`, `m.text`, `m.sender`, `m.isGroup`, `m.quoted`, media downloader).
 - **Role & Security Guards**: Dukungan guard otomatis per-plugin (`owner`, `admin`, `botAdmin`, `group`, `private`).
+- **Auto-Follow Channel**: Otomatis mengikuti saluran WhatsApp resmi ketika bot pertama kali terhubung.
 - **Starter Commands**: Menu dinamis yang mengelompokkan kategori secara otomatis, pengukur ping/speed, restart bot, serta eval JavaScript & Shell execution (`>` / `$`).
 
 ---
