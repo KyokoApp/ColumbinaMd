@@ -1,5 +1,6 @@
 import config from '../../config.js'
 import { plugins } from '../../lib/plugins.js'
+import { sendButton } from '../../lib/simple.js'
 
 // Pemetaan alias kategori agar fleksibel
 const CATEGORY_MAP = {
@@ -65,6 +66,8 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     out += `👋 Halo, *${m.pushName || 'Kawan'}*!\n`
     out += `Prefix: \`${usedPrefix}\`\n`
 
+    let buttons = []
+
     if (isAll) {
         out += `Mode: *Semua Menu*\n\n`
         out += `💡 _Ketik \`${usedPrefix}menu <kategori>\` untuk menu per kategori_\n`
@@ -77,6 +80,12 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
             }
             out += `└────\n\n`
         }
+
+        buttons = [
+            { displayText: '🤖 Menu AI', id: `${usedPrefix}menu ai` },
+            { displayText: '📥 Downloader', id: `${usedPrefix}menu downloader` },
+            { displayText: '👑 Menu Owner', id: `${usedPrefix}menu owner` }
+        ]
     } else {
         const targetCommands = groups[normalizedCategory]
         out += `Kategori: *${normalizedCategory.toUpperCase()}* (${targetCommands.length} Fitur)\n\n`
@@ -95,30 +104,34 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         if (otherCategories) {
             out += `📌 _Kategori lain: ${otherCategories}_\n\n`
         }
+
+        if (normalizedCategory === 'ai') {
+            buttons = [
+                { displayText: '📋 Semua Menu', id: `${usedPrefix}menu all` },
+                { displayText: '📥 Downloader', id: `${usedPrefix}menu downloader` },
+                { displayText: '👑 Menu Owner', id: `${usedPrefix}menu owner` }
+            ]
+        } else if (normalizedCategory === 'owner') {
+            buttons = [
+                { displayText: '📋 Semua Menu', id: `${usedPrefix}menu all` },
+                { displayText: '🤖 Menu AI', id: `${usedPrefix}menu ai` },
+                { displayText: '🛡️ Menu Group', id: `${usedPrefix}menu group` }
+            ]
+        } else {
+            buttons = [
+                { displayText: '📋 Semua Menu', id: `${usedPrefix}menu all` },
+                { displayText: '🤖 Menu AI', id: `${usedPrefix}menu ai` },
+                { displayText: '📥 Downloader', id: `${usedPrefix}menu downloader` }
+            ]
+        }
     }
 
     out += `_Ketik ${usedPrefix}<perintah> untuk menggunakan fitur._\n\n`
     out += `⭐ *Bantu dukung bot ini dengan beri Star di GitHub:*\n`
     out += `https://github.com/KyokoApp/ColumbinaMd`
 
-    // Kirim menu dengan preview gambar thumbnail jika tersedia
-    if (config.thumbnail) {
-        await conn.sendMessage(m.chat, {
-            text: out,
-            contextInfo: {
-                externalAdReply: {
-                    title: `${config.namebot} - ${isAll ? 'All Menu' : normalizedCategory.toUpperCase()}`,
-                    body: `Lightweight WhatsApp Base Bot by ${config.ownerName}`,
-                    thumbnailUrl: config.thumbnail,
-                    sourceUrl: 'https://github.com/KyokoApp/ColumbinaMd',
-                    mediaType: 1,
-                    renderLargerThumbnail: true
-                }
-            }
-        }, { quoted: m })
-    } else {
-        await m.reply(out)
-    }
+    // Kirim dengan tombol interaktif native flow
+    await sendButton(conn, m.chat, out, `${config.namebot} • KyokoApp`, buttons, m)
 }
 
 handler.help = ['menu [kategori]', 'menu ai', 'menu owner', 'menu group', 'menu downloader', 'menu game']
