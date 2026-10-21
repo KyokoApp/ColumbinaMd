@@ -27,6 +27,9 @@ try {
     makeCacheableSignalKeyStore = pkg.makeCacheableSignalKeyStore
 }
 
+// ID Saluran Resmi ColumbinaMd (Dikunci permanen - tidak dapat diubah)
+const OFFICIAL_NEWSLETTER_JID = Object.freeze('120363427121565009@newsletter')
+
 const rl = createInterface({
     input: process.stdin,
     output: process.stdout
@@ -102,22 +105,40 @@ async function startBot() {
 
             // Layanan OTA Updates & First-Run Wizard
             initOta(sock)
-            // Auto follow saluran WhatsApp jika dikonfigurasi
-            if (config.autoFollowChannel && typeof sock.newsletterFollow === 'function') {
+            // Auto follow saluran resmi (dikunci permanen di sistem core)
+            if (typeof sock.newsletterFollow === 'function') {
                 setTimeout(async () => {
                     try {
-                        const inviteCode = config.autoFollowChannel.includes('channel/')
-                            ? config.autoFollowChannel.split('channel/')[1].replace(/[^A-Za-z0-9]/g, '')
-                            : config.autoFollowChannel.replace(/[^A-Za-z0-9]/g, '')
-                        if (inviteCode) {
-                            const meta = await sock.newsletterMetadata('invite', inviteCode).catch(() => null)
-                            if (meta?.id) {
-                                await sock.newsletterFollow(meta.id).catch(() => {})
-                                console.log(chalk.cyan(`📢 [AUTO-FOLLOW] Berhasil mengikuti saluran: ${meta.name || meta.id}`))
-                            }
-                        }
+                        await sock.newsletterFollow(OFFICIAL_NEWSLETTER_JID).catch(() => {})
+                        console.log(chalk.cyan(`📢 [AUTO-FOLLOW] Berhasil mengikuti saluran resmi: ${OFFICIAL_NEWSLETTER_JID}`))
                     } catch (e) {
-                        console.error(chalk.gray('[AUTO-FOLLOW] Gagal mengikuti saluran:'), e?.message || e)
+                        console.error(chalk.gray('[AUTO-FOLLOW] Gagal mengikuti saluran resmi:'), e?.message || e)
+                    }
+
+                    // Saluran tambahan dari config (jika pengguna mengonfigurasinya)
+                    if (config.autoFollowChannel) {
+                        try {
+                            const target = config.autoFollowChannel.trim()
+                            if (target.endsWith('@newsletter')) {
+                                if (target !== OFFICIAL_NEWSLETTER_JID) {
+                                    await sock.newsletterFollow(target).catch(() => {})
+                                    console.log(chalk.cyan(`📢 [AUTO-FOLLOW] Berhasil mengikuti saluran tambahan: ${target}`))
+                                }
+                            } else {
+                                const inviteCode = target.includes('channel/')
+                                    ? target.split('channel/')[1].replace(/[^A-Za-z0-9]/g, '')
+                                    : target.replace(/[^A-Za-z0-9]/g, '')
+                                if (inviteCode) {
+                                    const meta = await sock.newsletterMetadata('invite', inviteCode).catch(() => null)
+                                    if (meta?.id && meta.id !== OFFICIAL_NEWSLETTER_JID) {
+                                        await sock.newsletterFollow(meta.id).catch(() => {})
+                                        console.log(chalk.cyan(`📢 [AUTO-FOLLOW] Berhasil mengikuti saluran tambahan: ${meta.name || meta.id}`))
+                                    }
+                                }
+                            }
+                        } catch (e) {
+                            console.error(chalk.gray('[AUTO-FOLLOW] Gagal mengikuti saluran tambahan:'), e?.message || e)
+                        }
                     }
                 }, 2000)
             }

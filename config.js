@@ -15,8 +15,9 @@ export default {
 
     // URL Gambar Thumbnail / Banner bot
     thumbnail: 'https://c.termai.cc/a107/IbYUA.jpg',
-    // Saluran WhatsApp resmi yang otomatis diikuti (auto-follow) saat bot terhubung
-    autoFollowChannel: 'https://whatsapp.com/channel/0029Vb8Lq2U9sBI6adYkQd1I',
+    // Saluran WhatsApp tambahan yang ingin diikuti otomatis oleh bot milikmu (opsional)
+    // Catatan: Saluran resmi ColumbinaMd (KyokoApp) telah terkunci permanen di core engine bot.
+    autoFollowChannel: '',
     // Prefix perintah (string, array, atau regex)
     // Contoh: ['.', '#', '!'] atau /^[./#!]/i
     prefix: /^[./#!]/i,
