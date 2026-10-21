@@ -24,10 +24,10 @@ let handler = async (m, { conn, text, args, usedPrefix, command }) => {
 
     // ── Command: .checkupdate / .cekupdate ──
     if (cmd === 'checkupdate' || cmd === 'cekupdate') {
-        await m.react('⏳')
+        if (typeof m.react === 'function') await m.react('⏳').catch(() => {})
         const commits = await fetchLatestCommits(1)
         if (!commits.length) {
-            await m.react('❌')
+            if (typeof m.react === 'function') await m.react('❌').catch(() => {})
             return m.reply('❌ Gagal memeriksa pembaruan ke repositori GitHub.')
         }
 
@@ -36,11 +36,11 @@ let handler = async (m, { conn, text, args, usedPrefix, command }) => {
         const currentShort = current.length > 7 ? current.slice(0, 7) : current
 
         if (current === latest.sha || currentShort === latest.shortSha) {
-            await m.react('✅')
+            if (typeof m.react === 'function') await m.react('✅').catch(() => {})
             return m.reply(`✅ *Script sudah versi terbaru!*\n\n• *Commit Terpasang:* \`${latest.shortSha}\`\n• *Catatan:* ${latest.message}\n• *Pengunggah:* ${latest.author}`)
         }
 
-        await m.react('📢')
+        if (typeof m.react === 'function') await m.react('📢').catch(() => {})
         const detail = await fetchCommitDetail(latest.sha)
         const changedFiles = detail?.files?.map(f => f.filename) || []
         const fileList = changedFiles.length
@@ -82,14 +82,19 @@ let handler = async (m, { conn, text, args, usedPrefix, command }) => {
         }
 
         if (action === 'accept' || action === 'pasang') {
-            if (!sha) return m.reply(`❌ Masukkan kode commit SHA. Contoh: \`${usedPrefix}update accept a1b2c3d\``)
+            let targetSha = sha
+            if (!targetSha) {
+                const commits = await fetchLatestCommits(1)
+                if (!commits.length) return m.reply('❌ Gagal memeriksa commit terbaru dari GitHub.')
+                targetSha = commits[0].sha
+            }
 
-            await m.react('⏳')
-            m.reply(`⏳ Sedang mengunduh dan menerapkan pembaruan \`${sha}\`...`)
+            if (typeof m.react === 'function') await m.react('⏳').catch(() => {})
+            m.reply(`⏳ Sedang mengunduh dan menerapkan pembaruan \`${targetSha.slice(0, 7)}\`...`)
 
             try {
-                const res = await applyUpdate(sha)
-                await m.react('✅')
+                const res = await applyUpdate(targetSha)
+                if (typeof m.react === 'function') await m.react('✅').catch(() => {})
 
                 let resText = `✅ *Pembaruan Berhasil Diterapkan!*\n\n`
                 resText += `• *Commit:* \`${res.shortSha}\`\n`
@@ -107,17 +112,22 @@ let handler = async (m, { conn, text, args, usedPrefix, command }) => {
 
                 return m.reply(resText)
             } catch (err) {
-                await m.react('❌')
+                if (typeof m.react === 'function') await m.react('❌').catch(() => {})
                 return m.reply(`❌ Gagal menerapkan pembaruan:\n${err.message || err}`)
             }
         }
 
         if (action === 'decline' || action === 'tolak' || action === 'lewati') {
-            if (!sha) return m.reply(`❌ Masukkan kode commit SHA. Contoh: \`${usedPrefix}update decline a1b2c3d\``)
+            let targetSha = sha
+            if (!targetSha) {
+                const commits = await fetchLatestCommits(1)
+                if (!commits.length) return m.reply('❌ Gagal memeriksa commit terbaru dari GitHub.')
+                targetSha = commits[0].sha
+            }
 
-            ignoreUpdate(sha)
-            await m.react('👌')
-            return m.reply(`👌 Pembaruan commit \`${sha}\` telah dilewati dan tidak akan ditawarkan kembali secara otomatis.`)
+            ignoreUpdate(targetSha)
+            if (typeof m.react === 'function') await m.react('👌').catch(() => {})
+            return m.reply(`👌 Pembaruan commit \`${targetSha.slice(0, 7)}\` telah dilewati dan tidak akan ditawarkan kembali secara otomatis.`)
         }
 
         return m.reply(`Aksi \`${action}\` tidak dikenal. Gunakan \`accept\` atau \`decline\`.`)
