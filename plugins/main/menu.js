@@ -15,10 +15,12 @@ const CATEGORY_MAP = {
     grup: 'group',
     gc: 'group',
     info: 'info',
+    tools: 'tools',
+    tool: 'tools',
+    audio: 'audio',
     main: 'main',
     general: 'main'
 }
-
 let handler = async (m, { conn, text, usedPrefix, command }) => {
     // Kelompokkan perintah berdasarkan tags
     const groups = {}
@@ -134,8 +136,8 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     await sendButton(conn, m.chat, out, `${config.namebot} • KyokoApp`, buttons, m)
 }
 
-handler.help = ['menu [kategori]', 'menu ai', 'menu owner', 'menu group', 'menu downloader', 'menu game']
+handler.help = ['menu [kategori]', 'menu ai', 'menu owner', 'menu group', 'menu downloader', 'menu game', 'menu tools']
 handler.tags = ['main']
-handler.command = /^(menu|help|menuall|menuai|menuowner|menudl|menudownloader|menugroup|menugrup|menugc|menugame|menuinfo)$/i
+handler.command = /^(menu|help|menuall|menuai|menuowner|menudl|menudownloader|menugroup|menugrup|menugc|menugame|menuinfo|menutools|menutool|menuaudio)$/i
 
 export default handler
