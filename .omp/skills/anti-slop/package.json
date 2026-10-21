@@ -1,0 +1,22 @@
+{
+  "name": "antislop",
+  "version": "3.2.20",
+  "private": true,
+  "type": "module",
+  "description": "Anti Slop: Rules for AI Coding Agents.",
+  "license": "MIT",
+  "keywords": [
+    "pi-package"
+  ],
+  "pi": {
+    "skills": ["./skills"]
+  },
+  "cline": {
+    "plugins": [
+      {
+        "paths": ["./.cline-plugin/plugin.js"],
+        "capabilities": []
+      }
+    ]
+  }
+}

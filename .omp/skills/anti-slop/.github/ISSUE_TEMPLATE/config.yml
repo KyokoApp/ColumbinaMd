@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: How to install antislop
+    url: https://github.com/miqdadbadjuber/anti-slop/blob/main/GUIDE.md
+    about: The from-zero walkthrough, covering every install route.
+  - name: How to contribute
+    url: https://github.com/miqdadbadjuber/anti-slop/blob/main/CONTRIBUTING.md
+    about: What a change has to satisfy before it can be reviewed.
+  - name: Security
+    url: https://github.com/miqdadbadjuber/anti-slop/blob/main/SECURITY.md
+    about: What the third-party audits flagged, and why each behavior is deliberate.

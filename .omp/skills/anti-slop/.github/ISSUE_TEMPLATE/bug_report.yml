@@ -1,0 +1,84 @@
+name: Bug report
+description: Something in the installer, a skill, or a document is wrong.
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The fields below are the ones a report needs before it can be reproduced. A report that is missing them costs a round trip, which is the thing this template exists to avoid.
+
+  - type: input
+    id: agent
+    attributes:
+      label: Agent
+      description: Which agent, and which version of it.
+      placeholder: Claude Code 2.1, or Codex 0.9
+    validations:
+      required: true
+
+  - type: input
+    id: antislop-version
+    attributes:
+      label: antislop version
+      description: The version the installer printed, or the contents of `skills/antislop/VERSION`.
+      placeholder: x.y.z
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install-route
+    attributes:
+      label: How it was installed
+      options:
+        - The installer (npx antislop-ai)
+        - A plugin from the agent's marketplace
+        - The manual wizard (antislop.md pasted in)
+        - Cloned the repository
+        - Not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      description: This matters more than it looks. The repository is checked on Windows, CI runs on Linux, and macOS is the least tested of the three.
+      options:
+        - Windows
+        - macOS
+        - Linux
+    validations:
+      required: true
+
+  - type: textarea
+    id: command
+    attributes:
+      label: What was run
+      description: The exact command.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What was expected
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened
+    validations:
+      required: true
+
+  - type: textarea
+    id: output
+    attributes:
+      label: Output
+      description: Paste what the installer or the agent printed. The last screen is usually enough.
+      render: shell
+    validations:
+      required: false

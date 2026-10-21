@@ -27,6 +27,7 @@
 - 🛡️ **Proteksi Grup** — Anti-link, anti-foto, anti-video (mode hapus biasa), & tagall/hidetag.
 - ⚙️ **Pengaturan .on / .off** — Sakelar grup berbasis teks ringan.
 - 🛠️ **Plugin Manager** — `.sp` (simpan), `.gp` (ambil), `.dp` (hapus) plugin via chat.
+- 🎮 **Game Interaktif Grup** — Family 100 (`.family100` / `.f100`) dengan 600+ database soal survei.
 - 💻 **Owner Tools** — Runner JavaScript (`>`), terminal shell (`$`), dan pengukur ping.
 
 ---

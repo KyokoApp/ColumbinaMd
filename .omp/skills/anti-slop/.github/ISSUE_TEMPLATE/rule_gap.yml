@@ -1,0 +1,43 @@
+name: Rule gap
+description: A rule missed something, or a pattern you keep seeing is not one antislop names.
+title: "[Rule] "
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this when antislop let something through. A paste of what got through is worth more than a description of it.
+
+  - type: input
+    id: rule
+    attributes:
+      label: Which rule
+      description: If an existing rule came close and missed, name it. Leave this empty if nothing covers the pattern.
+      placeholder: R-12
+    validations:
+      required: false
+
+  - type: input
+    id: skill
+    attributes:
+      label: Which skill
+      description: The core, or one of the skills (ui, copywriting, human, layoutmobile, code). Leave empty if you have no view.
+      placeholder: antislop-ui
+    validations:
+      required: false
+
+  - type: textarea
+    id: pattern
+    attributes:
+      label: The pattern
+      description: The copy, markup, or code that got through.
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it is slop
+      description: What makes it generic rather than specific. A rule is written from this part, so it carries the most weight.
+    validations:
+      required: true
