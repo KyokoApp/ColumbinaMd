@@ -1,13 +1,16 @@
 // ==========================================
 // CONFIGURASI BOT WHATSAPP - COLUMBINAMD
 // ==========================================
+import fs from 'fs'
+import { fileURLToPath } from 'url'
 
-export default {
+const config = {
     // Nama bot & owner
     namebot: 'ColumbinaMd',
     ownerName: 'KyokoApp',
 
     // Daftar nomor owner (format: '628xxxxxxxxxx' tanpa tanda +)
+    // Bisa berupa: ['628xxx'], number [628xxx], atau nested array [['628xxx', 'Owner', true]]
     owners: ['628xxxxxxxxxx'],
 
     // Nomor WhatsApp bot untuk pairing code (kosongkan jika ingin diinput di terminal saat jalan)
@@ -28,3 +31,21 @@ export default {
     // Lokasi folder auth session Baileys
     sessionDir: './session'
 }
+
+// Fitur Auto-Reload Config: Jika config.js diedit saat bot sedang menyala di panel,
+// konfigurasi akan langsung ter-update otomatis tanpa wajib restart bot.
+try {
+    const configFile = fileURLToPath(import.meta.url)
+    fs.watchFile(configFile, async () => {
+        try {
+            console.log('[CONFIG] Terdeteksi perubahan config.js, memuat ulang...')
+            const updated = await import(`${import.meta.url}?update=${Date.now()}`)
+            if (updated?.default) Object.assign(config, updated.default)
+            console.log('[CONFIG] Berhasil memuat ulang config.js secara otomatis!')
+        } catch (err) {
+            console.error('[CONFIG RELOAD ERROR]', err.message)
+        }
+    })
+} catch (_) {}
+
+export default config

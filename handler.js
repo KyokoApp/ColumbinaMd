@@ -16,26 +16,78 @@ export default async function messageHandler(conn, chatUpdate) {
         const m = smsg(conn, rawMsg)
         if (!m.text && !m.quoted && !m.mtype) continue
 
-        // Normalisasi nomor ke format digit bersih (contoh 08xxx -> 628xxx)
-        const normalizeNumber = (num = '') => {
+        // Normalisasi nomor ke format digit murni (contoh 08xxx -> 628xxx)
+        const cleanDigit = (num = '') => {
             let clean = String(num || '').replace(/[^0-9]/g, '')
             if (clean.startsWith('08')) clean = '628' + clean.slice(2)
             return clean
         }
 
-        // Deteksi Owner yang kuat & adaptif (potong device id :1 jika ada)
-        const senderNum = normalizeNumber(m.sender?.split(':')[0]?.split('@')[0])
-        const botNum = normalizeNumber(conn.user?.id?.split(':')[0]?.split('@')[0])
-        const pairingNum = normalizeNumber(config.pairingNumber?.split(':')[0]?.split('@')[0])
-        const ownerNumbers = (config.owners || [])
-            .map(normalizeNumber)
-            .filter(n => n && !n.includes('x') && n.length >= 7)
+        // Ekstraksi daftar nomor owner dari config (fleksibel: array, nested array, string, number, typo 'owner')
+        const extractOwnerList = (cfg) => {
+            const rawList = cfg?.owners || cfg?.owner || []
+            const arr = Array.isArray(rawList) ? rawList : [rawList]
+            const result = []
+            for (const item of arr) {
+                if (!item) continue
+                let val = item
+                if (Array.isArray(val)) val = val[0]
+                else if (typeof val === 'object' && val !== null) val = val.number || val.jid || val.id
+                const clean = cleanDigit(val)
+                if (clean && !clean.includes('x') && clean.length >= 7) {
+                    if (!result.includes(clean)) result.push(clean)
+                }
+            }
+            return result
+        }
 
-        // Otomatis daftarkan botNum dan pairingNum sebagai owner
+        // Daftar nomor owner dari konfigurasi
+        const ownerNumbers = extractOwnerList(config)
+
+        // Nomor bot & nomor pairing
+        const botNum = cleanDigit(conn.user?.id?.split(':')[0]?.split('@')[0])
+        const pairingNum = cleanDigit(config.pairingNumber?.split(':')[0]?.split('@')[0])
+        const botLid = conn.authState?.creds?.me?.lid || null
+
         if (botNum && !ownerNumbers.includes(botNum)) ownerNumbers.push(botNum)
         if (pairingNum && !ownerNumbers.includes(pairingNum)) ownerNumbers.push(pairingNum)
 
-        const isOwner = m.fromMe || (!!senderNum && ownerNumbers.includes(senderNum))
+        // Nomor pengirim dari pesan
+        const senderNum = cleanDigit(m.sender?.split(':')[0]?.split('@')[0])
+        const senderPn = cleanDigit(m.senderPn?.split(':')[0]?.split('@')[0])
+
+        // Evaluasi awal status owner
+        let isOwner = m.fromMe || 
+                      (!!botLid && (m.sender === botLid || m.senderLid === botLid)) || 
+                      (!!senderNum && ownerNumbers.includes(senderNum)) ||
+                      (!!senderPn && ownerNumbers.includes(senderPn))
+
+        // Resolusi jika pengirim menggunakan mode privasi WhatsApp (@lid)
+        if (!isOwner && (m.sender?.endsWith('@lid') || m.senderLid?.endsWith('@lid'))) {
+            const targetLid = m.sender?.endsWith('@lid') ? m.sender : m.senderLid
+            try {
+                // 1. Resolve Phone Number dari LID via Signal Repository
+                if (conn.signalRepository?.lidMapping?.getPNForLID) {
+                    const resolvedPn = await conn.signalRepository.lidMapping.getPNForLID(targetLid).catch(() => null)
+                    if (resolvedPn) {
+                        const num = cleanDigit(resolvedPn.split('@')[0])
+                        if (ownerNumbers.includes(num)) isOwner = true
+                    }
+                }
+            } catch (_) {}
+
+            // 2. Sebaliknya, cek apakah LID milik salah satu owner cocok dengan targetLid
+            if (!isOwner && conn.signalRepository?.lidMapping?.getLIDForPN) {
+                for (const onum of ownerNumbers) {
+                    const ownerLid = await conn.signalRepository.lidMapping.getLIDForPN(onum + '@s.whatsapp.net').catch(() => null)
+                    if (ownerLid && (targetLid === ownerLid || m.sender === ownerLid)) {
+                        isOwner = true
+                        break
+                    }
+                }
+            }
+        }
+
         // Metadata Grup (hanya diambil jika di grup dan dibutuhkan)
         let groupMetadata = null
         let participants = []
@@ -47,11 +99,28 @@ export default async function messageHandler(conn, chatUpdate) {
                 groupMetadata = await conn.groupMetadata(m.chat).catch(() => null)
                 if (groupMetadata) {
                     participants = groupMetadata.participants || []
-                    const userParticipant = participants.find(p => decodeJid(p.id) === m.sender)
+
+                    // Jika sender masih belum terdeteksi owner di grup, cek pemetaan LID/PN di metadata grup
+                    if (!isOwner) {
+                        const matchP = participants.find(p => p.id === m.sender || p.lid === m.sender || p.id === m.senderLid)
+                        if (matchP) {
+                            const pIdNum = cleanDigit(matchP.id?.split(':')[0]?.split('@')[0])
+                            const pJidNum = cleanDigit(matchP.jid?.split(':')[0]?.split('@')[0])
+                            if ((pIdNum && ownerNumbers.includes(pIdNum)) || (pJidNum && ownerNumbers.includes(pJidNum))) {
+                                isOwner = true
+                            }
+                        }
+                    }
+
+                    const userParticipant = participants.find(p => 
+                        decodeJid(p.id) === m.sender || p.lid === m.sender || p.id === m.sender || (m.senderLid && (p.lid === m.senderLid || p.id === m.senderLid))
+                    )
                     isAdmin = !!(userParticipant?.admin === 'admin' || userParticipant?.admin === 'superadmin')
 
                     const botId = decodeJid(conn.user?.id)
-                    const botParticipant = participants.find(p => decodeJid(p.id) === botId)
+                    const botParticipant = participants.find(p => 
+                        decodeJid(p.id) === botId || (botLid && (p.lid === botLid || p.id === botLid))
+                    )
                     isBotAdmin = !!(botParticipant?.admin === 'admin' || botParticipant?.admin === 'superadmin')
                 }
             } catch (err) {
