@@ -1,7 +1,9 @@
-import { fetchLatestCommits, fetchCommitDetail, applyUpdate, ignoreUpdate } from '../../lib/ota.js'
+import { fetchLatestCommits, fetchCommitDetail, applyUpdate, ignoreUpdate, syncFullRepoUpdate } from '../../lib/ota.js'
 import { sendButton } from '../../lib/simple.js'
 import { saveDatabase } from '../../lib/database.js'
 
+// Penyimpanan status konfirmasi sementara untuk aksi .update new
+const pendingFullUpdates = new Map()
 let handler = async (m, { conn, text, args, usedPrefix, command }) => {
     const cmd = command.toLowerCase()
 
@@ -74,9 +76,10 @@ let handler = async (m, { conn, text, args, usedPrefix, command }) => {
             return m.reply(
                 `🔧 *Columbina OTA Updater*\n\n` +
                 `Perintah:\n` +
-                `• \`${usedPrefix}checkupdate\` : Cek ketersediaan pembaruan\n` +
-                `• \`${usedPrefix}update accept <sha>\` : Terapkan pembaruan commit\n` +
+                `• \`${usedPrefix}checkupdate\` : Cek ketersediaan pembaruan terbaru\n` +
+                `• \`${usedPrefix}update accept <sha>\` : Terapkan pembaruan commit tertentu\n` +
                 `• \`${usedPrefix}update decline <sha>\` : Lewati pembaruan commit\n` +
+                `• \`${usedPrefix}update new\` : Sinkronisasi penuh semua kode dari GitHub resmi\n` +
                 `• \`${usedPrefix}autoupdate on/off\` : Pengaturan notifikasi otomatis`
             )
         }
@@ -129,12 +132,103 @@ let handler = async (m, { conn, text, args, usedPrefix, command }) => {
             if (typeof m.react === 'function') await m.react('👌').catch(() => {})
             return m.reply(`👌 Pembaruan commit \`${targetSha.slice(0, 7)}\` telah dilewati dan tidak akan ditawarkan kembali secara otomatis.`)
         }
+        // ── Aksi: .update new (Pembaruan Menyeluruh dengan Konfirmasi 2x) ──
+        if (action === 'new' || action === 'all' || action === 'full') {
+            const subArg = (args[1] || '').toLowerCase()
+            const senderId = m.sender
 
-        return m.reply(`Aksi \`${action}\` tidak dikenal. Gunakan \`accept\` atau \`decline\`.`)
+            // Tahap 1: Pengguna pertama kali mengetik .update new
+            if (subArg !== 'confirm' && subArg !== 'ya') {
+                pendingFullUpdates.set(senderId, {
+                    step: 1,
+                    time: Date.now()
+                })
+
+                const warnText =
+                    `⚠️ *PERINGATAN PEMBARUAN TOTAL (.update new)*\n\n` +
+                    `Tindakan ini akan mengunduh dan menyinkronkan *SELURUH KODE BOT* langsung dari repositori resmi GitHub KyokoApp/ColumbinaMd.\n\n` +
+                    `🛡️ *Keamanan Konfigurasi:*\n` +
+                    `• Nomor Owner di \`config.js\` Anda *TIDAK AKAN HILANG* (otomatis disimpan dan dipulihkan).\n` +
+                    `• Sesi login WhatsApp dan \`database.json\` Anda *AMAN* dan tidak akan disentuh.\n` +
+                    `• *Perhatian:* Jika Anda pernah mengedit sendiri file internal bot di panel, modifikasi tersebut akan ditimpa dengan kode resmi terbaru.\n\n` +
+                    `*Konfirmasi Tahap 1:* Apakah Anda yakin ingin melanjutkan?`
+
+                const buttons = [
+                    { displayText: '⚠️ Lanjut Konfirmasi', id: `${usedPrefix}update new confirm` },
+                    { displayText: '❌ Batalkan', id: `${usedPrefix}update new cancel` }
+                ]
+
+                return await sendButton(conn, m.chat, warnText, 'Columbina Safe Full Updater', buttons, m)
+            }
+
+            // Tahap 2: Pengguna mengonfirmasi tahap 1
+            if (subArg === 'confirm') {
+                const state = pendingFullUpdates.get(senderId)
+                if (!state || Date.now() - state.time > 120000) {
+                    pendingFullUpdates.delete(senderId)
+                    return m.reply(`⏱️ Sesi konfirmasi telah kadaluarsa. Silakan ketik \`${usedPrefix}update new\` kembali.`)
+                }
+
+                // Naikkan ke tahap 2 (Final Confirmation)
+                pendingFullUpdates.set(senderId, {
+                    step: 2,
+                    time: Date.now()
+                })
+
+                const finalWarn =
+                    `🚨 *KONFIRMASI FINAL (Tahap 2 dari 2)*\n\n` +
+                    `Ini adalah langkah terakhir sebelum seluruh file basebot diperbarui.\n` +
+                    `Tekan tombol *YA, SINKRONKAN SEKARANG* untuk memulai proses unduh dan pasang.`
+
+                const buttons = [
+                    { displayText: '🚀 YA, SINKRONKAN SEKARANG', id: `${usedPrefix}update new execute` },
+                    { displayText: '❌ Batalkan Pembaruan', id: `${usedPrefix}update new cancel` }
+                ]
+
+                return await sendButton(conn, m.chat, finalWarn, 'Columbina Final Confirmation', buttons, m)
+            }
+
+            // Tahap Eksekusi Sebenarnya (.update new execute)
+            if (subArg === 'execute') {
+                const state = pendingFullUpdates.get(senderId)
+                if (!state || state.step !== 2 || Date.now() - state.time > 120000) {
+                    pendingFullUpdates.delete(senderId)
+                    return m.reply(`⏱️ Sesi konfirmasi telah kadaluarsa. Silakan ketik \`${usedPrefix}update new\` kembali.`)
+                }
+
+                pendingFullUpdates.delete(senderId)
+                if (typeof m.react === 'function') await m.react('⏳').catch(() => {})
+                await m.reply('⏳ Sedang menyinkronkan seluruh repositori dari GitHub... Mohon tunggu sebentar.')
+
+                try {
+                    const result = await syncFullRepoUpdate('main')
+                    if (typeof m.react === 'function') await m.react('✅').catch(() => {})
+
+                    let report = `🎉 *PEMBARUAN TOTAL SELESAI!*\n\n`
+                    report += `• *Total Berkas Disinkronkan:* ${result.total} berkas\n`
+                    report += `• *Nomor Owner Terlindungi:* ${result.ownersPreserved.length ? result.ownersPreserved.join(', ') : 'Default'}\n`
+                    report += `• *Status Fitur:* Semua plugin (Button, ButtonV2, Auto AI, TOVN) telah aktif dan dimuat ulang.\n\n`
+                    report += `_Basebot Anda sekarang 100% mutakhir dengan repositori resmi GitHub KyokoApp/ColumbinaMd!_`
+
+                    return m.reply(report)
+                } catch (err) {
+                    console.error('[UPDATE NEW ERROR]', err)
+                    if (typeof m.react === 'function') await m.react('❌').catch(() => {})
+                    return m.reply(`❌ Terjadi kendala saat menyinkronkan repositori:\n${err.message || err}`)
+                }
+            }
+
+            // Pembatalan
+            if (subArg === 'cancel' || subArg === 'batal') {
+                pendingFullUpdates.delete(senderId)
+                return m.reply('❌ Pembaruan total telah dibatalkan.')
+            }
+        }
+
+        return m.reply(`Aksi \`${action}\` tidak dikenal. Gunakan \`accept\`, \`decline\`, atau \`new\`.`)
     }
 }
-
-handler.help = ['update accept <sha>', 'update decline <sha>', 'autoupdate <on/off>', 'checkupdate']
+handler.help = ['update accept <sha>', 'update decline <sha>', 'update new', 'autoupdate <on/off>', 'checkupdate']
 handler.tags = ['owner']
 handler.command = /^(update|autoupdate|checkupdate|cekupdate)$/i
 handler.owner = true

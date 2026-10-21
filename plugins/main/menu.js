@@ -127,12 +127,30 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
             ]
         }
     }
-
     out += `_Ketik ${usedPrefix}<perintah> untuk menggunakan fitur._\n\n`
     out += `⭐ *Bantu dukung bot ini dengan beri Star di GitHub:*\n`
     out += `https://github.com/KyokoApp/ColumbinaMd`
 
-    // Kirim dengan tombol interaktif native flow
+    // Coba kirim dengan ButtonV2 (Location Card + Thumbnail Banner) jika thumbnail tersedia
+    if (config.thumbnail && typeof ButtonV2 === 'function') {
+        try {
+            const btn = new ButtonV2(conn)
+                .setTitle(config.namebot.toUpperCase())
+                .setSubtitle(`By ${config.ownerName || 'KyokoApp'}`)
+                .setThumbnail(config.thumbnail)
+                .setBody(out)
+                .setFooter(`${config.namebot} • KyokoApp`)
+
+            for (const b of buttons) {
+                btn.addButton(b.displayText || b.text || 'Menu', b.id)
+            }
+            return await btn.send(m.chat, { quoted: m })
+        } catch (e) {
+            console.error('[MENU BUTTONV2 ERROR, FALLBACK TO SENDBUTTON]:', e.message)
+        }
+    }
+
+    // Fallback: Kirim dengan tombol interaktif native flow biasa
     await sendButton(conn, m.chat, out, `${config.namebot} • KyokoApp`, buttons, m)
 }
 
