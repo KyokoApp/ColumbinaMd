@@ -7,7 +7,11 @@ import messageHandler from './handler.js'
 import { initPlugins } from './lib/plugins.js'
 import { loadDatabase } from './lib/database.js'
 import { initOta } from './lib/ota.js'
+import { Button, ButtonV2 } from './lib/button.js'
 
+// Daftarkan class builder ke global scope agar bisa langsung dipakai di semua plugin
+global.Button = Button
+global.ButtonV2 = ButtonV2
 // Import Baileys dengan fallback aman
 let makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, Browsers, makeCacheableSignalKeyStore
 try {
