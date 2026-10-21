@@ -48,7 +48,7 @@ nano config.js
 # 4. Jalankan bot
 npm start
 ```
-> Masukkan nomor HP bot di terminal untuk mendapatkan 8-digit **Pairing Code**, lalu masukkan kodenya di menu WhatsApp (**Perangkat Tertaut** > **Tautkan dengan nomor telepon**).
+> Masukkan nomor HP bot di terminal untuk mendapatkan 8-digit **Pairing Code** (bisa custom 8 karakter via `config.customPairingCode` atau prompt terminal), lalu masukkan kodenya di menu WhatsApp (**Perangkat Tertaut** > **Tautkan dengan nomor telepon**).
 
 ---
 

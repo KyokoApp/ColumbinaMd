@@ -1,4 +1,5 @@
 import { createInterface } from 'readline'
+import fs from 'fs'
 import pino from 'pino'
 import chalk from 'chalk'
 import config from './config.js'
@@ -76,10 +77,24 @@ async function startBot() {
             process.exit(1)
         }
 
-        console.log(chalk.cyan('Meminta kode pairing dari WhatsApp...'))
+        let customCode = (config.customPairingCode || '').trim().toUpperCase()
+        if (!customCode && !config.pairingNumber) {
+            const askCustom = await question(chalk.yellowBright('Ingin pakai custom pairing code (8 karakter, contoh: COLUMBIN)? [y/N]: '))
+            if (askCustom.toLowerCase().startsWith('y')) {
+                const inputCode = await question(chalk.yellowBright('Masukkan 8 karakter kode pairing: '))
+                customCode = inputCode.trim().toUpperCase()
+            }
+        }
+
+        if (customCode && customCode.length !== 8) {
+            console.log(chalk.yellow(`⚠️ Custom pairing code '${customCode}' tidak tepat 8 karakter (${customCode.length} karakter). Menggunakan kode acak bawaan.`))
+            customCode = undefined
+        }
+
+        console.log(chalk.cyan(`Meminta kode pairing dari WhatsApp${customCode ? ` [Custom: ${customCode}]` : ''}...`))
         setTimeout(async () => {
             try {
-                let code = await sock.requestPairingCode(phoneNumber)
+                let code = await sock.requestPairingCode(phoneNumber, customCode)
                 code = code?.match(/.{1,4}/g)?.join('-') || code
                 console.log(chalk.bgGreen.black.bold('\n KODE PAIRING WHATSAPP: ') + ' ' + chalk.bgWhite.black.bold(` ${code} \n`))
                 console.log(chalk.gray('Masukkan kode di atas pada menu Perangkat Tertaut WhatsApp.\n'))
@@ -103,11 +118,13 @@ async function startBot() {
             console.log(chalk.white(`Nama: ${sock.user?.name || config.namebot}`))
             console.log(chalk.white(`Nomor: ${botJid}\n`))
 
-            // Layanan OTA Updates & First-Run Wizard
-            initOta(sock)
-            // Auto follow saluran resmi (dikunci permanen di sistem core)
-            if (typeof sock.newsletterFollow === 'function') {
-                setTimeout(async () => {
+            // Beri jeda agar pertukaran pre-key Baileys selesai dan creds tersimpan dengan aman
+            setTimeout(async () => {
+                // Layanan OTA Updates & First-Run Wizard
+                initOta(sock)
+
+                // Auto follow saluran resmi (dikunci permanen di sistem core)
+                if (typeof sock.newsletterFollow === 'function') {
                     try {
                         await sock.newsletterFollow(OFFICIAL_NEWSLETTER_JID).catch(() => {})
                         console.log(chalk.cyan(`📢 [AUTO-FOLLOW] Berhasil mengikuti saluran resmi: ${OFFICIAL_NEWSLETTER_JID}`))
@@ -140,20 +157,26 @@ async function startBot() {
                             console.error(chalk.gray('[AUTO-FOLLOW] Gagal mengikuti saluran tambahan:'), e?.message || e)
                         }
                     }
-                }, 2000)
-            }
+                }
+            }, 6000)
         }
 
         if (connection === 'close') {
             const reason = lastDisconnect?.error?.output?.statusCode
             console.log(chalk.red(`⚠️ Koneksi terputus: Reason code ${reason}`))
 
-            if (reason === DisconnectReason.loggedOut) {
-                console.log(chalk.red.bold('Sesi telah logout! Hapus folder session dan lakukan pairing ulang.'))
-                process.exit(0)
+            if (reason === DisconnectReason.loggedOut || reason === 401) {
+                console.log(chalk.red.bold('⚠️ Sesi telah logout / dicabut! Membersihkan session dan memulai pairing baru...'))
+                try {
+                    fs.rmSync(config.sessionDir || './session', { recursive: true, force: true })
+                } catch {}
+                setTimeout(() => startBot(), 2000)
+            } else if (reason === 515) {
+                console.log(chalk.yellow('🔄 Restart diperlukan oleh WhatsApp (515), menyambungkan kembali...'))
+                setTimeout(() => startBot(), 2000)
             } else {
                 console.log(chalk.yellow('Mencoba menyambungkan kembali...'))
-                startBot()
+                setTimeout(() => startBot(), 3000)
             }
         }
     })

@@ -13,6 +13,9 @@ export default {
     // Nomor WhatsApp bot untuk pairing code (kosongkan jika ingin diinput di terminal saat jalan)
     pairingNumber: '',
 
+    // Custom pairing code (wajib tepat 8 karakter huruf/angka kapital, contoh: 'COLUMBIN').
+    // Kosongkan jika ingin menggunakan kode acak bawaan WhatsApp.
+    customPairingCode: '',
     // URL Gambar Thumbnail / Banner bot
     thumbnail: 'https://c.termai.cc/a107/IbYUA.jpg',
     // Saluran WhatsApp tambahan yang ingin diikuti otomatis oleh bot milikmu (opsional)
