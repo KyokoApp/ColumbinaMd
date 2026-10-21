@@ -20,7 +20,8 @@
 
 ### ✨ Fitur Utama
 
-- 🔑 **Login Pairing Code** — Hubungkan bot langsung pakai 8 digit kode tanpa scan QR.
+- 📋 **Menu Terkategori** — Navigasi menu terpisah per modul (`.menu ai`, `.menu owner`, `.menu downloader`, `.menu group`, `.menu game`) atau `.menu all`.
+- 🔑 **Login Pairing Code** — Hubungkan bot langsung pakai 8 digit kode tanpa scan QR (mendukung custom 8-char code).
 - ⚡ **Hot-Reload Plugins** — Tambah/edit file di `plugins/` langsung aktif tanpa restart bot.
 - 🤖 **5 AI Tanpa API Key** — Gemini 2.0, DeepSeek R1, Claude, Qwen, & ChatGPT publik.
 - 📥 **Media Downloader** — Unduh TikTok (No-WM), Facebook (HD/SD), Instagram, & Pinterest.
