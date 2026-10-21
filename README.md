@@ -99,6 +99,9 @@ export default handler
   <a href="https://github.com/KyokoApp/ColumbinaMd">
     <img src="https://img.shields.io/badge/⭐_Beri_Star_di_GitHub-ffd700?style=for-the-badge" alt="Beri Bintang">
   </a>
+  <a href="https://github.com/KyokoApp/ColumbinaMd/issues/new/choose">
+    <img src="https://img.shields.io/badge/💬_Lapor_Error_&_Request-e11d48?style=for-the-badge" alt="Lapor Error">
+  </a>
 </p>
 
 <p align="center">
