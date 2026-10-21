@@ -1,20 +1,22 @@
-import util from 'util'
-import { exec } from 'child_process'
+import util, { promisify } from 'util'
+import cp, { exec as _exec } from 'child_process'
+
+const exec = promisify(_exec).bind(cp)
 
 let handler = async (m, { conn, text, usedPrefix, command, isOwner }) => {
     if (!text) return m.reply(`Contoh: ${usedPrefix}${command} console.log("hello")`)
 
     // Exec Shell ($)
     if (command === '$') {
-        exec(text, (err, stdout, stderr) => {
-            if (err) return m.reply(err.toString())
-            if (stderr) return m.reply(stderr.toString())
-            if (stdout) return m.reply(stdout.toString())
-            m.reply('Done (tanpa output).')
-        })
-        return
+        try {
+            const { stdout, stderr } = await exec(text)
+            if (stdout && stdout.trim()) return await m.reply(stdout.trim())
+            if (stderr && stderr.trim()) return await m.reply(stderr.trim())
+            return await m.reply('Done (tanpa output).')
+        } catch (err) {
+            return await m.reply(err.toString())
+        }
     }
-
     // JavaScript Eval (> atau =>)
     let output
     try {

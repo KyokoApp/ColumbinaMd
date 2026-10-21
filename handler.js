@@ -92,16 +92,36 @@ export default async function messageHandler(conn, chatUpdate) {
             if (m.text.startsWith(prefixPattern)) usedPrefix = prefixPattern
         }
 
+        // Dukungan khusus runner owner ($, >, =>) langsung tanpa prefix
+        let isOwnerEval = false
+        if (!usedPrefix && isOwner) {
+            const evalMatch = /^(=>|[>$])\s*/.exec(m.text)
+            if (evalMatch) {
+                usedPrefix = evalMatch[1]
+                isOwnerEval = true
+            }
+        }
+
         // Ekstraksi Perintah & Argumen
         let noPrefix = m.text
         if (usedPrefix) {
             noPrefix = m.text.slice(usedPrefix.length).trim()
         }
 
-        const [rawCmd, ...args] = noPrefix.trim().split(/\s+/)
-        const command = (rawCmd || '').toLowerCase()
-        const text = args.join(' ')
+        let command = ''
+        let args = []
+        let text = ''
 
+        if (isOwnerEval) {
+            command = usedPrefix
+            text = noPrefix
+            args = text.split(/\s+/)
+        } else {
+            const [rawCmd, ...rawArgs] = noPrefix.trim().split(/\s+/)
+            command = (rawCmd || '').toLowerCase()
+            args = rawArgs
+            text = args.join(' ')
+        }
         // Pencocokan dan eksekusi plugin
         for (const name in plugins) {
             const plugin = plugins[name]
