@@ -16,10 +16,26 @@ export default async function messageHandler(conn, chatUpdate) {
         const m = smsg(conn, rawMsg)
         if (!m.text && !m.quoted && !m.mtype) continue
 
-        // Deteksi Owner
-        const ownerJids = (config.owners || []).map(v => v.replace(/[^0-9]/g, '') + '@s.whatsapp.net')
-        const isOwner = m.fromMe || ownerJids.includes(m.sender)
+        // Normalisasi nomor ke format digit bersih (contoh 08xxx -> 628xxx)
+        const normalizeNumber = (num = '') => {
+            let clean = String(num || '').replace(/[^0-9]/g, '')
+            if (clean.startsWith('08')) clean = '628' + clean.slice(2)
+            return clean
+        }
 
+        // Deteksi Owner yang kuat & adaptif (potong device id :1 jika ada)
+        const senderNum = normalizeNumber(m.sender?.split(':')[0]?.split('@')[0])
+        const botNum = normalizeNumber(conn.user?.id?.split(':')[0]?.split('@')[0])
+        const pairingNum = normalizeNumber(config.pairingNumber?.split(':')[0]?.split('@')[0])
+        const ownerNumbers = (config.owners || [])
+            .map(normalizeNumber)
+            .filter(n => n && !n.includes('x') && n.length >= 7)
+
+        // Otomatis daftarkan botNum dan pairingNum sebagai owner
+        if (botNum && !ownerNumbers.includes(botNum)) ownerNumbers.push(botNum)
+        if (pairingNum && !ownerNumbers.includes(pairingNum)) ownerNumbers.push(pairingNum)
+
+        const isOwner = m.fromMe || (!!senderNum && ownerNumbers.includes(senderNum))
         // Metadata Grup (hanya diambil jika di grup dan dibutuhkan)
         let groupMetadata = null
         let participants = []
