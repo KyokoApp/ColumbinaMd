@@ -28,8 +28,8 @@
 - ⚙️ **Pengaturan .on / .off** — Sakelar grup berbasis teks ringan.
 - 🛠️ **Plugin Manager** — `.sp` (simpan), `.gp` (ambil), `.dp` (hapus) plugin via chat.
 - 🎮 **Game Interaktif Grup** — Family 100 (`.family100` / `.f100`) dengan 600+ database soal survei.
-- 💻 **Owner Tools** — Runner JavaScript (`>`), terminal shell (`$`), dan pengukur ping.
-
+- 🔄 **OTA Update & First-Run Wizard** — Notifikasi pembaruan resmi dari repo dengan tombol interaktif (`.update accept/decline`), serta wizard saat pertama kali dipasang di server.
+- 💻 **Owner Tools** — Runner JavaScript (`>`), terminal shell (`$`), cek update (`.checkupdate`), dan pengukur ping.
 ---
 
 ### 🚀 Cara Menjalankan
@@ -64,7 +64,8 @@ ColumbinaMd/
 ├── lib/
 │   ├── simple.js       # Serialisasi pesan (m.reply, m.download, dll)
 │   ├── plugins.js      # Dynamic loader & hot-reload watcher
-│   ├── database.js     # Database JSON pengaturan grup
+│   ├── database.js     # Database JSON pengaturan grup & settings
+│   ├── ota.js          # Layanan OTA Update & First-Run Wizard
 │   └── aiHelper.js     # API model AI gratis
 └── plugins/
     ├── main/           # Menu & starter commands
@@ -72,7 +73,7 @@ ColumbinaMd/
     ├── ai/             # .gemini, .deepseek, .claude, .qwen, .chatgpt
     ├── downloader/     # .tt, .fb, .ig, .pin
     ├── group/          # .on/.off, anti-media, kick, promote, tagall
-    └── owner/          # .sp, .gp, .dp, eval (>), shell ($), restart
+    └── owner/          # .sp, .gp, .dp, .update, .autoupdate, eval (>), restart
 ```
 
 </details>

@@ -5,6 +5,7 @@ import config from './config.js'
 import messageHandler from './handler.js'
 import { initPlugins } from './lib/plugins.js'
 import { loadDatabase } from './lib/database.js'
+import { initOta } from './lib/ota.js'
 
 // Import Baileys dengan fallback aman
 let makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, Browsers, makeCacheableSignalKeyStore
@@ -99,6 +100,8 @@ async function startBot() {
             console.log(chalk.white(`Nama: ${sock.user?.name || config.namebot}`))
             console.log(chalk.white(`Nomor: ${botJid}\n`))
 
+            // Layanan OTA Updates & First-Run Wizard
+            initOta(sock)
             // Auto follow saluran WhatsApp jika dikonfigurasi
             if (config.autoFollowChannel && typeof sock.newsletterFollow === 'function') {
                 setTimeout(async () => {
