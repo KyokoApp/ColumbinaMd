@@ -1,4 +1,4 @@
-import { fetchLatestCommits, fetchCommitDetail, applyUpdate, ignoreUpdate, syncFullRepoUpdate } from '../../lib/ota.js'
+import { getUnappliedCommits, fetchLatestCommits, fetchCommitDetail, applyUpdate, ignoreUpdate, syncFullRepoUpdate } from '../../lib/ota.js'
 import { sendButton } from '../../lib/simple.js'
 import { saveDatabase } from '../../lib/database.js'
 
@@ -6,65 +6,64 @@ import { saveDatabase } from '../../lib/database.js'
 const pendingFullUpdates = new Map()
 let handler = async (m, { conn, text, args, usedPrefix, command }) => {
     const cmd = command.toLowerCase()
-
-    // ── Command: .autoupdate on/off ──
+    // ── Command: .autoupdate (Diarahkan ke .checkupdate) ──
     if (cmd === 'autoupdate') {
-        const opt = (args[0] || '').toLowerCase()
-        if (opt === 'on' || opt === 'enable' || opt === '1') {
-            global.db.data.settings.autoUpdate = true
-            saveDatabase()
-            return m.reply('✅ *Layanan Update Otomatis (OTA) diaktifkan!*\nBot akan otomatis mengecek pembaruan resmi dari KyokoApp/ColumbinaMd dan mengirimkan tombol persetujuan ke chat owner.')
-        } else if (opt === 'off' || opt === 'disable' || opt === '0') {
-            global.db.data.settings.autoUpdate = false
-            saveDatabase()
-            return m.reply('❌ *Layanan Update Otomatis (OTA) dinonaktifkan!*\nAnda tidak akan menerima notifikasi pembaruan otomatis lagi (bisa cek manual via `.checkupdate`).')
-        } else {
-            const status = global.db.data.settings?.autoUpdate ? 'Aktif (ON)' : 'Mati (OFF)'
-            return m.reply(`Status Update Otomatis: *${status}*\n\nPenggunaan:\n• \`${usedPrefix + command} on\` untuk mengaktifkan\n• \`${usedPrefix + command} off\` untuk mematikan`)
-        }
+        return m.reply(
+            `ℹ️ *Sistem Pembaruan Columbina Kini Berbasis On-Demand*\n\n` +
+            `Bot tidak lagi memunculkan notifikasi update otomatis agar tidak mengganggu obrolan Anda.\n` +
+            `👉 Gunakan perintah \`${usedPrefix}checkupdate\` untuk memeriksa riwayat changelog dan rilis fitur baru kapan pun Anda inginkan.`
+        )
     }
 
-    // ── Command: .checkupdate / .cekupdate ──
+    // ── Command: .checkupdate / .cekupdate (Changelog & Status Versi) ──
     if (cmd === 'checkupdate' || cmd === 'cekupdate') {
         if (typeof m.react === 'function') await m.react('⏳').catch(() => {})
-        const commits = await fetchLatestCommits(1)
-        if (!commits.length) {
+        const { current, unapplied, latest } = await getUnappliedCommits(8)
+
+        if (!latest) {
             if (typeof m.react === 'function') await m.react('❌').catch(() => {})
-            return m.reply('❌ Gagal memeriksa pembaruan ke repositori GitHub.')
+            return m.reply('❌ Gagal memeriksa pembaruan ke repositori GitHub KyokoApp/ColumbinaMd.')
         }
 
-        const latest = commits[0]
-        const current = global.db.data.settings?.lastCommit || 'Belum tercatat'
-        const currentShort = current.length > 7 ? current.slice(0, 7) : current
+        const currentDisplay = current ? (current.length > 7 ? current.slice(0, 7) : current) : 'Belum tercatat'
 
-        if (current === latest.sha || currentShort === latest.shortSha) {
+        // Jika semua commit sudah terpasang
+        if (!unapplied.length) {
             if (typeof m.react === 'function') await m.react('✅').catch(() => {})
-            return m.reply(`✅ *Script sudah versi terbaru!*\n\n• *Commit Terpasang:* \`${latest.shortSha}\`\n• *Catatan:* ${latest.message}\n• *Pengunggah:* ${latest.author}`)
+            return m.reply(
+                `✅ *Script Columbina Anda Sudah Versi Paling Terbaru!*\n\n` +
+                `• *Versi Terpasang:* \`${latest.shortSha}\`\n` +
+                `• *Catatan:* ${latest.message}\n` +
+                `• *Pengunggah:* ${latest.author}\n` +
+                `• *Tanggal:* ${new Date(latest.date).toLocaleString('id-ID')}\n\n` +
+                `_Tidak ada pembaruan baru yang tertunda di repositori resmi._`
+            )
         }
 
         if (typeof m.react === 'function') await m.react('📢').catch(() => {})
-        const detail = await fetchCommitDetail(latest.sha)
-        const changedFiles = detail?.files?.map(f => f.filename) || []
-        const fileList = changedFiles.length
-            ? changedFiles.slice(0, 5).map(f => `• \`${f}\``).join('\n') +
-              (changedFiles.length > 5 ? `\n• _...dan ${changedFiles.length - 5} berkas lainnya_` : '')
-            : '• Pembaruan berkas umum'
+
+        // Susun daftar riwayat pembaruan yang belum terpasang (Changelog)
+        let changelog = ''
+        unapplied.forEach((c, idx) => {
+            changelog += `${idx + 1}. \`[${c.shortSha}]\` *${c.message}*\n`
+            changelog += `   ↳ _Oleh ${c.author} (${new Date(c.date).toLocaleDateString('id-ID')})_\n`
+        })
 
         const textMsg =
-            `📢 *Pembaruan Baru Tersedia!*\n\n` +
-            `• *Versi Saat Ini:* \`${currentShort}\`\n` +
-            `• *Versi Terbaru:* \`${latest.shortSha}\`\n` +
-            `• *Catatan Rilis:* "${latest.message}"\n` +
-            `• *Pengunggah:* ${latest.author}\n\n` +
-            `*Berkas Terkait:*\n${fileList}\n\n` +
+            `📢 *Pembaruan Baru Tersedia! (${unapplied.length} Rilis Belum Terpasang)*\n\n` +
+            `• *Versi Anda Saat Ini:* \`${currentDisplay}\`\n` +
+            `• *Versi Terbaru di GitHub:* \`${latest.shortSha}\`\n\n` +
+            `📋 *Daftar Pembaruan & Fitur Baru:*\n` +
+            `${changelog}\n` +
+            `💡 *Saran:* Disarankan menggunakan *Update Menyeluruh* agar seluruh fitur baru & perbaikan bug sinkron secara utuh tanpa risiko file terlewat.\n\n` +
             `Pilih tindakan di bawah:`
 
         const buttons = [
-            { displayText: '✅ Pasang Update', id: `${usedPrefix}update accept ${latest.shortSha}` },
-            { displayText: '❌ Lewati Versi Ini', id: `${usedPrefix}update decline ${latest.shortSha}` }
+            { displayText: '🚀 Update Menyeluruh (.update new)', id: `${usedPrefix}update new` },
+            { displayText: '👌 Lewati Versi Ini', id: `${usedPrefix}update decline ${latest.shortSha}` }
         ]
 
-        return await sendButton(conn, m.chat, textMsg, 'ColumbinaMd OTA', buttons, m)
+        return await sendButton(conn, m.chat, textMsg, 'Columbina OTA Updater', buttons, m)
     }
 
     // ── Command: .update accept / decline ──
@@ -76,11 +75,9 @@ let handler = async (m, { conn, text, args, usedPrefix, command }) => {
             return m.reply(
                 `🔧 *Columbina OTA Updater*\n\n` +
                 `Perintah:\n` +
-                `• \`${usedPrefix}checkupdate\` : Cek ketersediaan pembaruan terbaru\n` +
-                `• \`${usedPrefix}update accept <sha>\` : Terapkan pembaruan commit tertentu\n` +
-                `• \`${usedPrefix}update decline <sha>\` : Lewati pembaruan commit\n` +
-                `• \`${usedPrefix}update new\` : Sinkronisasi penuh semua kode dari GitHub resmi\n` +
-                `• \`${usedPrefix}autoupdate on/off\` : Pengaturan notifikasi otomatis`
+                `• \`${usedPrefix}checkupdate\` : Cek riwayat rilis & changelog fitur baru\n` +
+                `• \`${usedPrefix}update new\` : Sinkronisasi penuh semua kode terbaru dari GitHub\n` +
+                `• \`${usedPrefix}update decline <sha>\` : Lewati dan tandai pembaruan telah dilihat`
             )
         }
 
@@ -206,10 +203,11 @@ let handler = async (m, { conn, text, args, usedPrefix, command }) => {
 
                     let report = `🎉 *PEMBARUAN TOTAL SELESAI!*\n\n`
                     report += `• *Total Berkas Disinkronkan:* ${result.total} berkas\n`
-                    report += `• *Nomor Owner Terlindungi:* ${result.ownersPreserved.length ? result.ownersPreserved.join(', ') : 'Default'}\n`
-                    report += `• *Status Fitur:* Semua plugin (Button, ButtonV2, Auto AI, TOVN) telah aktif dan dimuat ulang.\n\n`
+                    report += `• *Nomor Owner Terlindungi:* ${result.preserved.owners.length ? result.preserved.owners.join(', ') : 'Default'}\n`
+                    report += `• *Nomor Bot Terlindungi:* ${result.preserved.pairingNumber || 'Sesuai Sesi'}\n`
+                    report += `• *Custom Pairing Code:* ${result.preserved.customPairingCode || 'Tidak Diubah'}\n`
+                    report += `• *Status Fitur:* Semua plugin dan pustaka telah diperbarui & dimuat ulang secara live.\n\n`
                     report += `_Basebot Anda sekarang 100% mutakhir dengan repositori resmi GitHub KyokoApp/ColumbinaMd!_`
-
                     return m.reply(report)
                 } catch (err) {
                     console.error('[UPDATE NEW ERROR]', err)
@@ -228,7 +226,7 @@ let handler = async (m, { conn, text, args, usedPrefix, command }) => {
         return m.reply(`Aksi \`${action}\` tidak dikenal. Gunakan \`accept\`, \`decline\`, atau \`new\`.`)
     }
 }
-handler.help = ['update accept <sha>', 'update decline <sha>', 'update new', 'autoupdate <on/off>', 'checkupdate']
+handler.help = ['checkupdate', 'update new', 'update decline <sha>']
 handler.tags = ['owner']
 handler.command = /^(update|autoupdate|checkupdate|cekupdate)$/i
 handler.owner = true
