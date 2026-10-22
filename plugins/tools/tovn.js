@@ -1,33 +1,15 @@
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { execSync, spawn } from 'child_process'
+import { execSync } from 'child_process'
+import ffmpegInstaller from '@ffmpeg-installer/ffmpeg'
+import ffmpeg from 'fluent-ffmpeg'
+
+ffmpeg.setFfmpegPath(ffmpegInstaller.path)
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-/**
- * Hitung waveform dari file PCM (standar Baileys / WhatsApp PTT)
- */
-function getWaveformFromPCM(pcmData, samples = 64) {
-    if (!pcmData || !pcmData.length) return Array(samples).fill(0)
-    const blockSize = Math.floor(pcmData.length / samples) || 1
-    const waveform = []
-    for (let i = 0; i < samples; i++) {
-        let sum = 0
-        const start = i * blockSize
-        const end = Math.min(start + blockSize, pcmData.length)
-        for (let j = start; j < end; j++) {
-            sum += Math.abs(pcmData[j])
-        }
-        waveform.push(Math.min(100, Math.floor(sum / (end - start || 1) / 20)))
-    }
-    return waveform
-}
-
-/**
- * Deteksi durasi audio dalam detik
- */
 function getAudioDuration(filePath) {
     try {
         const out = execSync(`ffprobe -i "${filePath}" -show_entries format=duration -v quiet -of csv="p=0"`, {
@@ -55,7 +37,6 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     const id = `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
     const inputPath = path.join(tmpDir, `tovn_in_${id}`)
     const outputPath = path.join(tmpDir, `tovn_out_${id}.ogg`)
-    const pcmPath = path.join(tmpDir, `tovn_pcm_${id}.pcm`)
 
     await m.react('⏳')
 
@@ -65,33 +46,33 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 
         await fs.promises.writeFile(inputPath, buffer)
 
-        // Transcoding ke format PTT WhatsApp resmi (Ogg Opus mono 48kHz bitrate 128k)
-        execSync(`ffmpeg -y -i "${inputPath}" -vn -c:a libopus -b:a 128k -ar 48000 -ac 1 "${outputPath}"`, {
-            timeout: 30000,
-            stdio: ['ignore', 'ignore', 'ignore']
+        // Konversi ke format Ogg Opus resmi WhatsApp Voice Note
+        await new Promise((resolve, reject) => {
+            ffmpeg(inputPath)
+                .noVideo()
+                .audioCodec('libopus')
+                .audioChannels(1)
+                .audioFrequency(48000)
+                .audioBitrate('64k')
+                .format('ogg')
+                .addOutputOptions([
+                    '-application voip',
+                    '-vbr on'
+                ])
+                .on('end', resolve)
+                .on('error', (err, stdout, stderr) => reject(new Error(String(stderr || err.message).slice(-300))))
+                .save(outputPath)
         })
 
-        // Ekstraksi waveform via PCM s16le
-        let waveform = []
-        try {
-            execSync(`ffmpeg -y -i "${outputPath}" -f s16le -acodec pcm_s16le "${pcmPath}"`, {
-                timeout: 15000,
-                stdio: ['ignore', 'ignore', 'ignore']
-            })
-            if (fs.existsSync(pcmPath)) {
-                waveform = getWaveformFromPCM(fs.readFileSync(pcmPath))
-            }
-        } catch (_) {}
-
-        const duration = getAudioDuration(outputPath)
         const audioBuffer = await fs.promises.readFile(outputPath)
+        const duration = getAudioDuration(outputPath)
 
+        // Kirim audio PTT WhatsApp murni tanpa payload yang memicu file bermasalah
         await conn.sendMessage(m.chat, {
             audio: audioBuffer,
             mimetype: 'audio/ogg; codecs=opus',
             ptt: true,
-            waveform: waveform.length ? waveform : undefined,
-            audioDuration: duration
+            seconds: duration
         }, { quoted: m })
 
         await m.react('✅')
@@ -100,11 +81,8 @@ let handler = async (m, { conn, usedPrefix, command }) => {
         await m.react('❌')
         await m.reply(`[FAIL] Gagal mengubah media ke VN: ${e.message || e}`)
     } finally {
-        [inputPath, outputPath, pcmPath].forEach(f => {
-            try {
-                if (fs.existsSync(f)) fs.unlinkSync(f)
-            } catch (_) {}
-        })
+        fs.promises.unlink(inputPath).catch(() => {})
+        fs.promises.unlink(outputPath).catch(() => {})
     }
 }
 
