@@ -1,7 +1,6 @@
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { execSync } from 'child_process'
 import ffmpegInstaller from '@ffmpeg-installer/ffmpeg'
 import ffmpeg from 'fluent-ffmpeg'
 
@@ -10,16 +9,36 @@ ffmpeg.setFfmpegPath(ffmpegInstaller.path)
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-function getAudioDuration(filePath) {
+async function convertToPTT(buffer) {
+    const tmpDir = path.join(__dirname, '../../tmp')
+    if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true })
+
+    const id = `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
+    const inPath = path.join(tmpDir, `ptt_in_${id}`)
+    const outPath = path.join(tmpDir, `ptt_out_${id}.ogg`)
+
+    await fs.promises.writeFile(inPath, buffer)
+
     try {
-        const out = execSync(`ffprobe -i "${filePath}" -show_entries format=duration -v quiet -of csv="p=0"`, {
-            timeout: 5000,
-            stdio: ['ignore', 'pipe', 'ignore']
-        }).toString().trim()
-        const sec = Math.ceil(parseFloat(out))
-        return isNaN(sec) || sec <= 0 ? 1 : sec
-    } catch {
-        return 1
+        await new Promise((resolve, reject) => {
+            ffmpeg(inPath)
+                .noVideo()
+                .audioCodec('libopus')
+                .audioChannels(1)
+                .audioFrequency(48000)
+                .audioBitrate('128k')
+                .format('ogg')
+                .addOutputOptions(['-vbr on'])
+                .on('end', resolve)
+                .on('error', reject)
+                .save(outPath)
+        })
+
+        const data = await fs.promises.readFile(outPath)
+        return data
+    } finally {
+        fs.promises.unlink(inPath).catch(() => {})
+        fs.promises.unlink(outPath).catch(() => {})
     }
 }
 
@@ -31,64 +50,50 @@ let handler = async (m, { conn, usedPrefix, command }) => {
         return m.reply(`🎙️ Balas (*reply*) video atau audio yang ingin diubah menjadi Voice Note (VN) dengan perintah:\n*${usedPrefix + command}*`)
     }
 
-    const tmpDir = path.join(__dirname, '../../tmp')
-    if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true })
-
-    const id = `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
-    const inputPath = path.join(tmpDir, `tovn_in_${id}`)
-    const outputPath = path.join(tmpDir, `tovn_out_${id}.ogg`)
-
     await m.react('⏳')
 
     try {
-        const buffer = await q.download()
-        if (!buffer || !Buffer.isBuffer(buffer)) throw new Error('Gagal mengunduh media.')
+        const media = await q.download?.()
+        if (!media || !Buffer.isBuffer(media) || !media.length) {
+            throw new Error('Gagal mengunduh media dari pesan.')
+        }
 
-        await fs.promises.writeFile(inputPath, buffer)
+        const pttAudio = await convertToPTT(media)
+        if (!pttAudio || !pttAudio.length) {
+            throw new Error('Gagal mengonversi media ke Voice Note.')
+        }
 
-        // Konversi ke format Ogg Opus resmi WhatsApp Voice Note
-        await new Promise((resolve, reject) => {
-            ffmpeg(inputPath)
-                .noVideo()
-                .audioCodec('libopus')
-                .audioChannels(1)
-                .audioFrequency(48000)
-                .audioBitrate('64k')
-                .format('ogg')
-                .addOutputOptions([
-                    '-application voip',
-                    '-vbr on'
-                ])
-                .on('end', resolve)
-                .on('error', (err, stdout, stderr) => reject(new Error(String(stderr || err.message).slice(-300))))
-                .save(outputPath)
-        })
+        // Metode 1: Standar komunitas bot Baileys modern menggunakan sendFile dengan audio/mp4 (bebas galat audio bermasalah)
+        let sent = null
+        try {
+            sent = await conn.sendFile(m.chat, pttAudio, 'audio.mp4', '', m, true, {
+                mimetype: 'audio/mp4',
+                ptt: true
+            })
+        } catch (errSend) {
+            console.error('[tovn] sendFile error, fallback to sendMessage:', errSend)
+        }
 
-        const audioBuffer = await fs.promises.readFile(outputPath)
-        const duration = getAudioDuration(outputPath)
-
-        // Kirim audio PTT WhatsApp murni tanpa payload yang memicu file bermasalah
-        await conn.sendMessage(m.chat, {
-            audio: audioBuffer,
-            mimetype: 'audio/ogg; codecs=opus',
-            ptt: true,
-            seconds: duration
-        }, { quoted: m })
+        // Metode 2: Fallback ke sendMessage bila sendFile terkendala
+        if (!sent) {
+            await conn.sendMessage(m.chat, {
+                audio: pttAudio,
+                mimetype: 'audio/mp4',
+                ptt: true
+            }, { quoted: m })
+        }
 
         await m.react('✅')
     } catch (e) {
         console.error('[tovn]', e)
         await m.react('❌')
         await m.reply(`[FAIL] Gagal mengubah media ke VN: ${e.message || e}`)
-    } finally {
-        fs.promises.unlink(inputPath).catch(() => {})
-        fs.promises.unlink(outputPath).catch(() => {})
     }
 }
 
 handler.help = ['tovn <reply video/audio>']
 handler.tags = ['tools', 'audio']
-handler.command = /^(tovn|tovoice|vn)$/i
+handler.command = /^(tovn|tovoice|vn|toptt)$/i
 handler.limit = true
 
 export default handler
