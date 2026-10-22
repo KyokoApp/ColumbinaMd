@@ -74,7 +74,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
                     .audioChannels(1)
                     .audioFrequency(48000)
                     .audioBitrate('128k')
-                    .addOutputOptions(['-vbr on'])
+                    .addOutputOptions(['-vbr on', '-avoid_negative_ts make_zero'])
                     .on('end', resolve)
                     .on('error', reject)
                     .save(outputPath)
@@ -111,6 +111,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
             mimetype: 'audio/ogg; codecs=opus',
             ptt: true,
             seconds: duration,
+            audioDuration: duration,
             waveform: waveform
         }, { quoted: m })
 
