@@ -1,26 +1,32 @@
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { spawn, execSync } from 'child_process'
-import crypto from 'node:crypto'
+import { execSync, spawn } from 'child_process'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-// Setup FFmpeg
-let fluentFfmpeg = null
-try {
-    const ffMod = await import('fluent-ffmpeg')
-    const ffInst = await import('@ffmpeg-installer/ffmpeg')
-    fluentFfmpeg = ffMod.default || ffMod
-    const binaryPath = ffInst?.default?.path || ffInst?.path
-    if (binaryPath) {
-        fluentFfmpeg.setFfmpegPath(binaryPath)
+/**
+ * Hitung waveform dari file PCM (standar Baileys / WhatsApp PTT)
+ */
+function getWaveformFromPCM(pcmData, samples = 64) {
+    if (!pcmData || !pcmData.length) return Array(samples).fill(0)
+    const blockSize = Math.floor(pcmData.length / samples) || 1
+    const waveform = []
+    for (let i = 0; i < samples; i++) {
+        let sum = 0
+        const start = i * blockSize
+        const end = Math.min(start + blockSize, pcmData.length)
+        for (let j = start; j < end; j++) {
+            sum += Math.abs(pcmData[j])
+        }
+        waveform.push(Math.min(100, Math.floor(sum / (end - start || 1) / 20)))
     }
-} catch (_) {}
+    return waveform
+}
 
 /**
- * Deteksi durasi audio dalam detik agar WhatsApp player tidak freeze (00:00)
+ * Deteksi durasi audio dalam detik
  */
 function getAudioDuration(filePath) {
     try {
@@ -35,13 +41,6 @@ function getAudioDuration(filePath) {
     }
 }
 
-/**
- * Generate visual waveform WhatsApp (64 bytes Uint8Array)
- */
-function generateWaveform() {
-    return Buffer.from(crypto.randomBytes(64).map(b => Math.min(100, Math.floor(b % 100))))
-}
-
 let handler = async (m, { conn, usedPrefix, command }) => {
     let q = m.quoted ? m.quoted : m
     let mime = (q.msg || q).mimetype || ''
@@ -53,8 +52,10 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     const tmpDir = path.join(__dirname, '../../tmp')
     if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true })
 
-    const inputPath = path.join(tmpDir, `tovn_in_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`)
-    const outputPath = path.join(tmpDir, `tovn_out_${Date.now()}_${Math.random().toString(36).slice(2, 7)}.ogg`)
+    const id = `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
+    const inputPath = path.join(tmpDir, `tovn_in_${id}`)
+    const outputPath = path.join(tmpDir, `tovn_out_${id}.ogg`)
+    const pcmPath = path.join(tmpDir, `tovn_pcm_${id}.pcm`)
 
     await m.react('⏳')
 
@@ -64,55 +65,33 @@ let handler = async (m, { conn, usedPrefix, command }) => {
 
         await fs.promises.writeFile(inputPath, buffer)
 
-        // Transcoding ke format PTT WhatsApp resmi (Ogg Opus mono 48kHz bitrate 128k VBR)
-        if (fluentFfmpeg) {
-            await new Promise((resolve, reject) => {
-                fluentFfmpeg(inputPath)
-                    .noVideo()
-                    .audioCodec('libopus')
-                    .format('ogg')
-                    .audioChannels(1)
-                    .audioFrequency(48000)
-                    .audioBitrate('128k')
-                    .addOutputOptions(['-vbr on', '-avoid_negative_ts make_zero'])
-                    .on('end', resolve)
-                    .on('error', reject)
-                    .save(outputPath)
-            })
-        } else {
-            await new Promise((resolve, reject) => {
-                const proc = spawn('ffmpeg', [
-                    '-y',
-                    '-i', inputPath,
-                    '-vn',
-                    '-c:a', 'libopus',
-                    '-b:a', '128k',
-                    '-vbr', 'on',
-                    '-ar', '48000',
-                    '-ac', '1',
-                    '-f', 'ogg',
-                    outputPath
-                ])
-                proc.on('close', code => {
-                    if (code === 0) resolve()
-                    else reject(new Error(`FFmpeg exit code ${code}`))
-                })
-                proc.on('error', reject)
-            })
-        }
+        // Transcoding ke format PTT WhatsApp resmi (Ogg Opus mono 48kHz bitrate 128k)
+        execSync(`ffmpeg -y -i "${inputPath}" -vn -c:a libopus -b:a 128k -ar 48000 -ac 1 "${outputPath}"`, {
+            timeout: 30000,
+            stdio: ['ignore', 'ignore', 'ignore']
+        })
 
-        const audioBuffer = await fs.promises.readFile(outputPath)
+        // Ekstraksi waveform via PCM s16le
+        let waveform = []
+        try {
+            execSync(`ffmpeg -y -i "${outputPath}" -f s16le -acodec pcm_s16le "${pcmPath}"`, {
+                timeout: 15000,
+                stdio: ['ignore', 'ignore', 'ignore']
+            })
+            if (fs.existsSync(pcmPath)) {
+                waveform = getWaveformFromPCM(fs.readFileSync(pcmPath))
+            }
+        } catch (_) {}
+
         const duration = getAudioDuration(outputPath)
-        const waveform = generateWaveform()
+        const audioBuffer = await fs.promises.readFile(outputPath)
 
-        // Kirim sebagai PTT WhatsApp dengan seconds & waveform lengkap agar bisa langsung diputar
         await conn.sendMessage(m.chat, {
             audio: audioBuffer,
             mimetype: 'audio/ogg; codecs=opus',
             ptt: true,
-            seconds: duration,
-            audioDuration: duration,
-            waveform: waveform
+            waveform: waveform.length ? waveform : undefined,
+            audioDuration: duration
         }, { quoted: m })
 
         await m.react('✅')
@@ -121,8 +100,11 @@ let handler = async (m, { conn, usedPrefix, command }) => {
         await m.react('❌')
         await m.reply(`[FAIL] Gagal mengubah media ke VN: ${e.message || e}`)
     } finally {
-        fs.promises.unlink(inputPath).catch(() => {})
-        fs.promises.unlink(outputPath).catch(() => {})
+        [inputPath, outputPath, pcmPath].forEach(f => {
+            try {
+                if (fs.existsSync(f)) fs.unlinkSync(f)
+            } catch (_) {}
+        })
     }
 }
 
