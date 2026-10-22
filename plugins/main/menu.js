@@ -2,6 +2,11 @@ import config from '../../config.js'
 import { plugins } from '../../lib/plugins.js'
 import { ButtonV2, sendButton } from '../../lib/simple.js'
 import fs from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const bannerPath = path.resolve(__dirname, '../../assets/banner.jpg')
 
 // Pemetaan alias kategori agar fleksibel
 const CATEGORY_MAP = {
@@ -54,9 +59,9 @@ function getUptimeString() {
 }
 
 function getThumbnail() {
-    if (fs.existsSync('./assets/banner.jpg')) {
+    if (fs.existsSync(bannerPath)) {
         try {
-            return fs.readFileSync('./assets/banner.jpg')
+            return fs.readFileSync(bannerPath)
         } catch (_) {}
     }
     return config.thumbnail || 'https://c.termai.cc/a107/IbYUA.jpg'
