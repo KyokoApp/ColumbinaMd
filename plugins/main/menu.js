@@ -1,6 +1,7 @@
 import config from '../../config.js'
 import { plugins } from '../../lib/plugins.js'
-import { Button, sendButton } from '../../lib/simple.js'
+import { ButtonV2, sendButton } from '../../lib/simple.js'
+import fs from 'fs'
 
 // Pemetaan alias kategori agar fleksibel
 const CATEGORY_MAP = {
@@ -28,10 +29,10 @@ const CATEGORY_META = {
     ai: { icon: '🤖', title: 'Menu AI & Assistant', desc: 'DeepSeek, Gemini, Claude, Qwen, GPT' },
     downloader: { icon: '📥', title: 'Menu Downloader', desc: 'TikTok, Instagram, Facebook, YouTube' },
     sticker: { icon: '✨', title: 'Menu Sticker & Maker', desc: 'Brat, Bratvid, dan Pembuat Stiker' },
-    tools: { icon: '🛠️', title: 'Menu Tools & Utility', desc: 'Voice Note (VN), konverter, dan utilitas' },
-    game: { icon: '🎮', title: 'Menu Game & Hiburan', desc: 'Family 100 dan mini game' },
+    tools: { icon: '🛠️', title: 'Menu Tools & Utility', desc: 'Voice Note (VN), konverter, utilitas' },
+    game: { icon: '🎮', title: 'Menu Game & Hiburan', desc: 'Family 100 dan game interaktif' },
     group: { icon: '🛡️', title: 'Menu Group Admin', desc: 'Manajemen grup dan keamanan' },
-    info: { icon: 'ℹ️', title: 'Menu Informasi Bot', desc: 'Status bot, source code, dan speed' },
+    info: { icon: 'ℹ️', title: 'Menu Informasi Bot', desc: 'Status bot, source code, speed' },
     owner: { icon: '👑', title: 'Menu Owner & Dev', desc: 'Manajemen server, update OTA, restart' },
     main: { icon: '📋', title: 'Menu Utama', desc: 'Daftar menu dasar' },
     audio: { icon: '🎵', title: 'Menu Audio', desc: 'Pemrosesan dan efek audio' },
@@ -50,6 +51,15 @@ function getUptimeString() {
     if (m > 0) parts.push(`${m}m`)
     parts.push(`${sec}d`)
     return parts.join(' ')
+}
+
+function getThumbnail() {
+    if (fs.existsSync('./assets/banner.jpg')) {
+        try {
+            return fs.readFileSync('./assets/banner.jpg')
+        } catch (_) {}
+    }
+    return config.thumbnail || 'https://c.termai.cc/a107/IbYUA.jpg'
 }
 
 let handler = async (m, { conn, text, usedPrefix, command, isOwner }) => {
@@ -84,10 +94,10 @@ let handler = async (m, { conn, text, usedPrefix, command, isOwner }) => {
     const availableTags = Object.keys(groups).sort()
     const isCategoryView = requestedCategory && requestedCategory !== 'all' && requestedCategory !== 'semua'
 
-    // Total fitur
     const totalFitur = Object.values(groups).reduce((acc, curr) => acc + curr.length, 0)
     const pushname = m.pushName || 'Kawan'
     const botname = config.namebot || 'Columbina'
+    const thumb = getThumbnail()
 
     // ==========================================
     // VIEW 1: TAMPILAN MENU PER KATEGORI SPESIFIK
@@ -118,25 +128,50 @@ let handler = async (m, { conn, text, usedPrefix, command, isOwner }) => {
         out += `╰───────────────────────\n\n`
         out += `_Ketik perintah di atas untuk menggunakan fitur._`
 
-        // Gunakan Button dengan Single Select List untuk pindah kategori dengan cepat
-        try {
-            const btn = new Button(conn)
-                .setTitle(`📂 ${botname.toUpperCase()} - ${normalizedCategory.toUpperCase()}`)
-                .setBody(out)
-                .setFooter(`${botname} • By ${config.ownerName || 'KyokoApp'}`)
-                .addSelection('📑 Ganti Kategori')
-                .makeSection('Pilihan Kategori Lain')
-
-            btn.makeRow('📋', 'Tampilkan Semua Fitur', 'Buka ringkasan seluruh menu', `${usedPrefix}menu all`)
-            for (const tag of availableTags) {
-                if (tag === normalizedCategory) continue
-                const catMeta = CATEGORY_META[tag] || { icon: '✦', title: `Menu ${tag}`, desc: `Buka menu ${tag}` }
-                btn.makeRow(catMeta.icon, catMeta.title, catMeta.desc, `${usedPrefix}menu ${tag}`)
+        // Susun baris single_select untuk kategori lain
+        const rows = [
+            {
+                title: '📋 Semua Menu',
+                description: `Tampilkan seluruh ${totalFitur} perintah`,
+                id: `${usedPrefix}menu all`
             }
+        ]
+        for (const tag of availableTags) {
+            if (tag === normalizedCategory) continue
+            const catMeta = CATEGORY_META[tag] || { icon: '✦', title: `Menu ${tag}`, desc: `Buka menu ${tag}` }
+            rows.push({
+                title: `${catMeta.icon} ${catMeta.title}`,
+                description: `${groups[tag].length} perintah • ${catMeta.desc}`,
+                id: `${usedPrefix}menu ${tag}`
+            })
+        }
+
+        try {
+            const btn = new ButtonV2(conn)
+                .setTitle(`📂 ${botname.toUpperCase()} - ${normalizedCategory.toUpperCase()}`)
+                .setSubtitle(`By ${config.ownerName || 'KyokoApp'}`)
+                .setThumbnail(thumb)
+                .setBody(out)
+                .setFooter(`${botname} • KyokoApp`)
+                .addRawButton({
+                    buttonText: { displayText: '📑 Ganti Kategori' },
+                    buttonId: 'menu_cat_select',
+                    type: 1,
+                    nativeFlowInfo: {
+                        name: 'single_select',
+                        paramsJson: JSON.stringify({
+                            title: 'Pilih Kategori Lain',
+                            sections: [{
+                                title: `Total ${availableTags.length} Kategori`,
+                                rows
+                            }]
+                        })
+                    }
+                })
 
             return await btn.send(m.chat, { quoted: m })
         } catch (e) {
-            console.error('[MENU CATEGORY BUTTON ERROR, FALLBACK TO SENDBUTTON]:', e.message)
+            console.error('[MENU CATEGORY BUTTONV2 ERROR]:', e.message)
             return await sendButton(conn, m.chat, out, `${botname} • KyokoApp`, [
                 { displayText: '📋 Semua Menu', id: `${usedPrefix}menu all` }
             ], m)
@@ -164,18 +199,37 @@ let handler = async (m, { conn, text, usedPrefix, command, isOwner }) => {
         out += `_Bantu dukung bot ini dengan Star di GitHub:_\n`
         out += `https://github.com/KyokoApp/ColumbinaMd`
 
-        try {
-            const btn = new Button(conn)
-                .setTitle(`🌐 ${botname.toUpperCase()}`)
-                .setBody(out)
-                .setFooter(`${botname} • By ${config.ownerName || 'KyokoApp'}`)
-                .addSelection('📑 Pilih Kategori Spesifik')
-                .makeSection('Daftar Kategori')
-
-            for (const tag of availableTags) {
-                const catMeta = CATEGORY_META[tag] || { icon: '✦', title: `Menu ${tag}`, desc: `Buka menu ${tag}` }
-                btn.makeRow(catMeta.icon, catMeta.title, `${groups[tag].length} fitur • ${catMeta.desc}`, `${usedPrefix}menu ${tag}`)
+        const rows = availableTags.map(tag => {
+            const catMeta = CATEGORY_META[tag] || { icon: '✦', title: `Menu ${tag}`, desc: `Buka menu ${tag}` }
+            return {
+                title: `${catMeta.icon} ${catMeta.title}`,
+                description: `${groups[tag].length} perintah • ${catMeta.desc}`,
+                id: `${usedPrefix}menu ${tag}`
             }
+        })
+
+        try {
+            const btn = new ButtonV2(conn)
+                .setTitle(`🌐 ${botname.toUpperCase()}`)
+                .setSubtitle(`By ${config.ownerName || 'KyokoApp'}`)
+                .setThumbnail(thumb)
+                .setBody(out)
+                .setFooter(`${botname} • KyokoApp`)
+                .addRawButton({
+                    buttonText: { displayText: '📑 Pilih Kategori' },
+                    buttonId: 'menu_all_select',
+                    type: 1,
+                    nativeFlowInfo: {
+                        name: 'single_select',
+                        paramsJson: JSON.stringify({
+                            title: 'Daftar Kategori Spesifik',
+                            sections: [{
+                                title: `Total ${availableTags.length} Kategori`,
+                                rows
+                            }]
+                        })
+                    }
+                })
 
             return await btn.send(m.chat, { quoted: m })
         } catch (e) {
@@ -187,7 +241,7 @@ let handler = async (m, { conn, text, usedPrefix, command, isOwner }) => {
     }
 
     // ==========================================
-    // VIEW 3: TAMPILAN MENU UTAMA (SINGLE SELECT CARD)
+    // VIEW 3: TAMPILAN MENU UTAMA (CARD SINGLE SELECT)
     // ==========================================
     let headerText = `╭───「 🌸 *${botname.toUpperCase()}* 」\n`
     headerText += `│ Halo, *${pushname}*! 👋\n`
@@ -198,25 +252,50 @@ let handler = async (m, { conn, text, usedPrefix, command, isOwner }) => {
     headerText += `╰───────────────────────\n\n`
     headerText += `Silakan sentuh tombol *Pilih Menu* di bawah untuk menjelajahi fitur berdasarkan kategori:`
 
-    try {
-        const btn = new Button(conn)
-            .setTitle(`🌸 ${botname.toUpperCase()}`)
-            .setBody(headerText)
-            .setFooter(`${botname} • By ${config.ownerName || 'KyokoApp'}`)
-            .addSelection('📂 Pilih Menu')
-            .makeSection('Kategori Menu Columbina')
-
-        btn.makeRow('📋', 'Semua Menu', `Tampilkan seluruh ${totalFitur} fitur sekaligus`, `${usedPrefix}menu all`)
-
-        for (const tag of availableTags) {
-            const catMeta = CATEGORY_META[tag] || { icon: '✦', title: `Menu ${tag}`, desc: `Koleksi fitur ${tag}` }
-            const count = groups[tag].length
-            btn.makeRow(catMeta.icon, catMeta.title, `${count} fitur • ${catMeta.desc}`, `${usedPrefix}menu ${tag}`)
+    const rows = [
+        {
+            title: '📋 Semua Menu',
+            description: `Tampilkan seluruh ${totalFitur} fitur sekaligus`,
+            id: `${usedPrefix}menu all`
         }
+    ]
+
+    for (const tag of availableTags) {
+        const catMeta = CATEGORY_META[tag] || { icon: '✦', title: `Menu ${tag}`, desc: `Koleksi fitur ${tag}` }
+        const count = groups[tag].length
+        rows.push({
+            title: `${catMeta.icon} ${catMeta.title}`,
+            description: `${count} fitur • ${catMeta.desc}`,
+            id: `${usedPrefix}menu ${tag}`
+        })
+    }
+
+    try {
+        const btn = new ButtonV2(conn)
+            .setTitle(`🌸 ${botname.toUpperCase()}`)
+            .setSubtitle(`By ${config.ownerName || 'KyokoApp'}`)
+            .setThumbnail(thumb)
+            .setBody(headerText)
+            .setFooter(`${botname} • KyokoApp`)
+            .addRawButton({
+                buttonText: { displayText: '📂 Pilih Menu' },
+                buttonId: 'menu_select',
+                type: 1,
+                nativeFlowInfo: {
+                    name: 'single_select',
+                    paramsJson: JSON.stringify({
+                        title: 'Pilih Kategori Menu',
+                        sections: [{
+                            title: `Total ${availableTags.length} Kategori`,
+                            rows
+                        }]
+                    })
+                }
+            })
 
         return await btn.send(m.chat, { quoted: m })
     } catch (e) {
-        console.error('[MENU MAIN BUTTON ERROR, FALLBACK TO SENDBUTTON]:', e.message)
+        console.error('[MENU MAIN BUTTONV2 ERROR, FALLBACK TO SENDBUTTON]:', e.message)
         const fallbackButtons = [
             { displayText: '🤖 Menu AI', id: `${usedPrefix}menu ai` },
             { displayText: '📥 Downloader', id: `${usedPrefix}menu downloader` },
