@@ -7,16 +7,21 @@ const bannerPath = path.resolve(__dirname, '../../assets/banner.jpg')
 
 let handler = async (m, { usedPrefix, command }) => {
     try {
-        const quoted = m.quoted || m
-        const mime = quoted?.mimetype || ''
+        const q = m.quoted ? m.quoted : m
+        const mime = q?.msg?.mimetype || q?.mimetype || ''
+        const isImage = /image/i.test(q?.mtype) || /image/i.test(mime)
 
-        if (!mime.startsWith('image/')) {
+        if (!isImage) {
             return m.reply(`Reply gambar terlebih dahulu!\nContoh: kirim/reply foto lalu ketik *${usedPrefix + command}*`)
+        }
+
+        if (typeof q.download !== 'function') {
+            return m.reply('Pesan gambar tidak dapat diunduh!')
         }
 
         await m.react('⏳')
 
-        const buffer = await quoted.download()
+        const buffer = await q.download()
         if (!buffer || buffer.length === 0) {
             await m.react('❌')
             return m.reply('Gagal mengunduh gambar!')
