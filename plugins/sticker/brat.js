@@ -25,7 +25,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
         }).toBuffer()
 
         if (stiker) {
-            await conn.sendFile(m.chat, stiker, 'brat.webp', '', m)
+            await conn.sendMessage(m.chat, { sticker: stiker }, { quoted: m })
             await m.react('✅')
         } else {
             await m.react('❌')

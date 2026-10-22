@@ -127,26 +127,12 @@ let handler = async (m, { conn, usedPrefix, command }) => {
             throw new Error('Gagal mengonversi media ke Voice Note.')
         }
 
-        // Metode 1: Standar komunitas bot Baileys modern menggunakan sendFile dengan audio/mp4 (bebas galat audio bermasalah)
-        let sent = null
-        try {
-            sent = await conn.sendFile(m.chat, pttAudio, 'audio.mp4', '', m, true, {
-                mimetype: 'audio/mp4',
-                ptt: true
-            })
-        } catch (errSend) {
-            console.error('[tovn] sendFile error, fallback to sendMessage:', errSend)
-        }
-
-        // Metode 2: Fallback ke sendMessage bila sendFile terkendala
-        if (!sent) {
-            await conn.sendMessage(m.chat, {
-                audio: pttAudio,
-                mimetype: 'audio/mp4',
-                ptt: true
-            }, { quoted: m })
-        }
-
+        // Kirim langsung via conn.sendMessage dengan mimetype audio/ogg; codecs=opus agar kompatibel
+        await conn.sendMessage(m.chat, {
+            audio: pttAudio,
+            mimetype: 'audio/ogg; codecs=opus',
+            ptt: true
+        }, { quoted: m })
         await m.react('✅')
     } catch (e) {
         console.error('[tovn]', e)

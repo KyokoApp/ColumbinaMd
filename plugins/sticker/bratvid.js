@@ -23,8 +23,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
             categories: ['✨'],
             quality: 70
         })
-
-        await conn.sendFile(m.chat, stickerBuffer, 'bratvid.webp', '', m)
+        await conn.sendMessage(m.chat, { sticker: stickerBuffer }, { quoted: m })
         await m.react('✅')
     } catch (e) {
         console.error('[bratvid]', e)
